@@ -149,7 +149,7 @@ class CMTransform:
         os.chdir(self.olddir)
 
     def dtransform(self):
-        """returns affine transform that maps the middle voxel (i/2, j/2, k/2) to (0, 0, 0)""" 
+        """returns affine transform that maps the center of the matrix (i/2, j/2, k/2) to (0, 0, 0)""" 
         self.zooms = self.img.get_header().get_zooms()
         self.shape = self.img.get_shape()
         self.old_affine = self.img.get_affine()
@@ -262,7 +262,6 @@ class CMAnalyze:
         if self.flags(path):
             return
 
-        prevdir = os.getcwd()
         idsearch = re.search('B[0-9]{2}-[0-9]{3}', path)
         id = idsearch.group()
         cm = CenterMass(path, self.use_mm, self.threshold)
@@ -294,7 +293,7 @@ def main(input, outputpath, threshold, writemode='w',overwrite = True, use_mm = 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('input')
+    parser.add_argument('input', required = True)
     parser.add_argument('output')
     parser.add_argument('-m', default = 'w') #specify a write mode
 
@@ -302,6 +301,7 @@ if __name__ == "__main__":
     statsoption.add_argument('-c', action = 'store_true')
     statsoption.add_argument('-C', action = 'store_true')
 
+    parser.add_argument('-f', action = 'store_true', help = 'fix')
     parser.add_argument('--no-overwrite', action = 'store_true')
     parser.add_argument('-t', default = 20, help = 'specify a threshold for flagging a file as off center')
 
