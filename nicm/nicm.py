@@ -44,11 +44,11 @@ class CenterMass():
         else:
             self._op = '-C'
 
-    def _calc_dist(self):
-        """ calculates distance of center of mass from (0,0,0)
+    def _calc_dist(self, vector):
+        """ calculates distance of vector from (0,0,0)
         returns dist"""
         warning = '' # default warning is empty
-        dist = sqrt(float(sum([x**2 for x in self.cm])))
+        dist = sqrt(float(sum([x**2 for x in vector])))
         if dist > self.thresh:
             warning = '!off center'
         return dist, warning
@@ -63,7 +63,7 @@ class CenterMass():
         if not output.runtime.returncode == 0:
             return (('na', 'na', 'na'), 'na', 'FAILED')
         self.cm = output.outputs.out_stat
-        return (tuple(self.cm), self._calc_dist()[0], self._calc_dist()[1])
+        return (tuple(self.cm), self._calc_dist(self.cm)[0], self._calc_dist(self.cm)[1])
 
 class CSVIO:
 
@@ -76,14 +76,14 @@ class CSVIO:
         """
         self.mode = mode
         path, self.filename = os.path.split(filepath)
-        if not re.search('.csv', self.file):
+        if not re.search('.csv', self.filename):
             self.filename = self.filename + '.csv'
 
         prevdir = os.getcwd()
 
-        if writepath:
-            os.chdir(writepath)
-        self.file = open(filename, writemode)
+        if path:
+            os.chdir(path)
+        self.file = open(self.filename, self.mode)
         self.initialized = False
         if mode == 'w':
             self.writer = csv.writer(self.file, delimiter = ',')  
@@ -231,7 +231,7 @@ class CMAnalyze:
             print 'Need permission to overwrite: ' + outputfile + ', please run without --no-overwrite option'
             self.donotrun = True
             return
-        self.writer = CSVWriter(outputfile) 
+        self.writer = CSVIO(outputfile) 
 
     def flags(self, path):
         if self.donotrun:
@@ -282,52 +282,36 @@ class CMAnalyze:
         for file in filepaths:
             self.run(file.rstrip('\n'))
 
-def main(inputtype, input, outputpath, threshold, overwrite = True, use_mm = True):
+def main(input, outputpath, threshold, writemode='w',overwrite = True, use_mm = True):
+    """outputs center of mass of a file to a csv file
+
+    Usage:
+        python nicm.py input output
+    """
     m = CMAnalyze(outputpath, use_mm, threshold, overwrite)    
-    if inputtype == 'list':
-        m.runlist(input)
-    elif inputtype == 'path':
-        m.run(input)
-    elif inputtype == 'dir': #this does not work
-        m.runfilesin(input)
-    else:
-        print 'Please specify a valid input type' 
-
-
+    m.run(input)
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    inputargs = parser.add_mutually_exclusive_group(required = True)
-    outputargs = parser.add_mutually_exclusive_group(required = True)
+    parser.add_argument('input')
+    parser.add_argument('output')
+    parser.add_argument('-m', default = 'w') #specify a write mode
+
     statsoption = parser.add_mutually_exclusive_group()
-
-    inputargs.add_argument('-f', help = 'specify an input file') #run on paths in plaintext file
-    inputargs.add_argument('-l', help = 'specify a file containing a list of input paths') #run on file at path
-    inputargs.add_argument('-d', help = 'specify a directory containing files to run') #does not work
-
     statsoption.add_argument('-c', action = 'store_true')
     statsoption.add_argument('-C', action = 'store_true')
 
-    outputargs.add_argument('-o', default = 'data.csv', help = 'specify an output file, defaults to ./data.csv') #output file
     parser.add_argument('--no-overwrite', action = 'store_true')
     parser.add_argument('-t', default = 20, help = 'specify a threshold for flagging a file as off center')
 
     args = parser.parse_args()
+    input = args.input
+    output = args.output
 
-    if args.f:
-        readmode = 'path'
-        input = args.f 
-    elif args.l:
-        readmode = 'list'
-        input = args.l
-    elif args.d:
-        readmode = 'dir'
-        input = args.d
-     
     if args.C:
         use_mm = False
     else:
         use_mm = True
 
-    main(readmode, input, args.o, args.t, not args.no_overwrite, use_mm)
+    main(input, output, args.m, args.t, not args.no_overwrite, use_mm)
