@@ -8,187 +8,326 @@ import re
 import nibabel as ni
 import nipype.interfaces.fsl as fsl
 import numpy as np
+import argparse
+import tempfile
 
-ANATOMY_PATH='fs_ss_anatomy'
-WRITE_PATH='/home/jagust/cwang/cm'
-ANATOMY_FILE='rad_nu_mri.nii'
-R_THRESHOLD = 20
-V_THRESHOLD = 20
-NA = 'n/a'
+class CenterMass():
 
+    def __init__(self, filename, use_mm = True, thresh = 20):
+        """ Calculate center of mass of brain in image volume using fslstats
 
-class CMFinder:
+        Parameters
+        ----------
+        filename : str
+            Str representing image file
+        use_mm : Bool
+            Calc center of mass in mm space (default True)
+            If False calculates center of mass in voxel space
+        thresh : int
+            Threshold for distance from 0,0,0 to center of mass
 
-    def vfindcm(self, filename):
-        """returns the center of mass of a brain from a .nii file in the current directory as a list of integers corresponding to the x, y, and z coordinates."""
+        Returns
+        -------
 
-        com = fsl.ImageStats()
-        print os.getcwd()
-        if ANATOMY_FILE not in os.listdir('.'):
-            #print 'File not found!'
-            raise IOError('File not found!')
-        com.inputs.in_file=filename
-        com.inputs.op_string='-c'
-        output = com.run()
-        assert output.runtime.returncode == 0, 'return code non-zero'
-        cm = output.outputs.out_stat 
-        dist = sqrt(float(sum([x**2 for x in cm])))
-        if dist > V_THRESHOLD:
-            cm = cm + [dist, '!off center']
+        result : tuple (tuple, float, str)
+            Returns (cm, dist, warning) 
+            cm is calculated center of mass (x,y,z)
+            dist is distance of center of mass from (0,0,0)
+            warning is '' if dist < thresh, otherwise '!off center'
+
+        """
+
+        self.filename = filename
+        self.thresh = 20
+        if use_mm:
+            self._op = '-c'
         else:
-            cm = cm + [dist,'']       
-        return cm 
-    
-    def rfindcm(self, filename):
-        """returns the center of mass of a brain from a .nii file in the current directory as a list of floating point numbers corresponding to the x, y, and z coordinates."""
+            self._op = '-C'
 
+    def _calc_dist(self):
+        """ calculates distance of center of mass from (0,0,0)
+        returns dist"""
+        warning = '' # default warning is empty
+        dist = sqrt(float(sum([x**2 for x in self.cm])))
+        if dist > self.thresh:
+            warning = '!off center'
+        return dist, warning
+
+    def run(self):
+        """ calculates center of mass of input image, and distance
+        returns tuple (cm, dist, warning)"""
         com = fsl.ImageStats()
-        if ANATOMY_FILE not in os.listdir('.'):
-            print 'File not found!'
-            raise IOError('File not found!')
-        com.inputs.in_file=filename
-        com.inputs.op_string='-C'
+        com.inputs.in_file = self.filename
+        com.inputs.op_string = self._op
         output = com.run()
-        assert output.runtime.returncode == 0, 'return code non-zero'
-        cm = output.outputs.out_stat
-        dist = sqrt(float(sum([x**2 for x in cm]))) 
-        if dist > R_THRESHOLD:
-            cm = cm + [dist, '!off center']
-        else:
-            cm = cm + [dist, '']
-        return cm
+        if not output.runtime.returncode == 0:
+            return (('na', 'na', 'na'), 'na', 'FAILED')
+        self.cm = output.outputs.out_stat
+        return (tuple(self.cm), self._calc_dist()[0], self._calc_dist()[1])
 
-class CSVOut:
-    
-    def init(self, filename):
-        """Creates a new csv file, if it does not already exist, and writes the header line. Overwrites existing file."""
+class CSVIO:
+
+    def __init__(self, filepath, mode = 'w'):
+        """
+        Modes:
+        'w' = (over)write
+        'a' = append
+        'r' = read
+        """
+        self.mode = mode
+        path, self.filename = os.path.split(filepath)
+        if not re.search('.csv', self.file):
+            self.filename = self.filename + '.csv'
+
         prevdir = os.getcwd()
-        os.chdir(WRITE_PATH)
-        
-        if not re.search('.csv', filename):
-           filename = filename + '.csv'     
-        writer = csv.writer(open(filename, 'w'), delimiter=',')
-        writer.writerow(['id', 'x CM', 'y CM','z CM', 'distance', 'flags?'])
+
+        if writepath:
+            os.chdir(writepath)
+        self.file = open(filename, writemode)
+        self.initialized = False
+        if mode == 'w':
+            self.writer = csv.writer(self.file, delimiter = ',')  
+        elif mode == 'a':
+            self.initialized = True
+            self.writer = csv.writer(self.file, delimiter = ',')  
+        elif mode == 'r':
+            self.reader = csv.reader(self.file, delimiter = ',')
+
         os.chdir(prevdir)   
 
-    def add(self, filename, data):
-        """Appends a line of data to a csv file, or creates the file and then writes data to it if the file does not exist"""     
-        prevdir = os.getcwd()
-        os.chdir(WRITE_PATH)
+    def _init(self):
+        """Initializes the file with a header, overwriting existing content"""
+        if self.initialized:
+            return
+        if self.mode == 'a':
+            self.initialized = True
+            return
+        if self.mode == 'r':
+            self.reader.next()
+            self.initialized = True
+            return
+        self.writer.writerow(['path','id', 'x', 'y', 'z', 'distance', 'flags?'])
+        self.initialized = True
 
-        if not re.search('.csv', filename):
-           filename = filename + '.csv'
-        if filename not in os.listdir('.'):
-            self.write(filename, data)
-        else:
-            writer = csv.writer(open(filename, 'a'), delimiter=',')
-            writer.writerow(data)
-        os.chdir(prevdir)
+    def writeline(self, output):
+        if not self.initialized:
+            self._init()
+        self.writer.writerow(output)
 
-    def write(self, filename, data):
-        """creates filename.csv if it does not exist, and writes a header and a line of data to it. Overwrites existing file."""
-        prevdir = os.getcwd()
-        os.chdir(WRITE_PATH)
+    def readline(self):
+        if not self.initialized:
+            self._init()
+        return self.reader.next()
 
-        if '.csv' not in filename:
-            filename = filename + '.csv'
-        self.init(filename)
-        self.add(filename, data)
-        os.chdir(prevdir)
-
-def main(input, output, outputtype='v', writemode='a'):
-    """Finds the center of mass of a brain from a .nii file and writes it to a .csv file
-    output is the csv file to output to. Output directory can be changed in constant variables at top of this file.
-    input accepts either the path to the .nii file to analyze, or if in a directory with B* subdirectories, will accept an ID. (the second method is preferred)
-    outputtype: v gets data in voxel coordinates, R gets data in real space coordinates
-    writemode: a adds data to the output file, w will overwrite the file from the beginning.
-
+class CMTransform:
     
-    If running as a standalone script
-    ---------------------------------
-    Expects the path for the output file as first argument
-    Expects the path to a .nii file as second argument. 
-    
-    -w will overwrite previous .csv data
+    def __init__(self, filepath):
+        """Calculates transform that maps the center of mass of a brain 
+        at filepath to (0, 0, 0), and writes a copy of the brain 
+        to a new .nii file with the calculated transform.
+        
+        Params
+        ------
+        filepath
+            location of .nii file for which to create transform matrix
 
-    -R will return real-world spatial data, -v will return voxel data.
-    Defaults to -v.
+        Seems to work with relative filepaths.
+        
+        >> t = CMTransform('/home/jagust/UCSF/AD-v1/B05-206/fs_ss_anatomy/rad_nu_mri.nii')
+        >> t.run('/home/jagust/output.nii')
+        """
 
-    Do not run inside patient (B*) directory
+        self.exists = True
+        if os.path.exists(filepath):
+            self.exists = False
+        self.olddir = os.getcwd()
+        self.filepath = filepath
+        self.dir, self.file = os.path.split(filepath)
+        if self.dir:
+            os.chdir(self.dir)
+        self.img = ni.load(self.file)
+        os.chdir(self.olddir)
 
-    Syntax:
-    python cm.py NII_FILE OUTPUT_FILE [mode [overwrite]]"""
+    def dtransform(self):
+        """returns affine transform that maps the middle voxel (i/2, j/2, k/2) to (0, 0, 0)""" 
+        self.zooms = self.img.get_header().get_zooms()
+        self.shape = self.img.get_shape()
+        self.old_affine = self.img.get_affine()
+        new_affine = np.identity(4)
+        i = 0
+        for zoom in self.zooms:
+            new_affine[i, i] = zoom
+            new_affine[i, 3] = -1 * self.shape[i]/2
+            i = i + 1
+        return new_affine
 
-    prevdir = os.getcwd()
-    if re.match('B[0-9]{2}-[0-9]{3}', input) and input in os.listdir('.'):
-        try:
-            os.chdir(os.path.join(input, ANATOMY_PATH))
-            finder = CMFinder()
-            writer = CSVOut()
-            try:
-                data = [input] + finder.vfindcm(ANATOMY_FILE)
-            except IOError:
-                print ANATOMY_FILE + " not found for " + input + "!"
-                writer.add(output, [input, NA, NA, NA, NA, '!' + ANATOMY_FILE + ' not found'])
-                os.chdir(prevdir)
-                return
-            if writemode == 'w':
-                writer.write(output, data)
-            else:
-                writer.add(output, data)
-            os.chdir(prevdir)
+    def cmtransform(self):
+        """returns affine transform that maps the center of mass of the brain to (0, 0, 0)"""
+        new_affine = self.dtransform()
+        tempdir = tempfile.mkdtemp()
+        newfile = os.path.join(tempdir, 'tmp.nii.gz')
+        if (self.dir):
+            os.chdir(self.dir)
+        newimg = ni.Nifti1Image(self.img.get_data(), new_affine)
+        os.chdir(tempdir)
+        newimg.to_filename('tmp.nii.gz')
+        cmfinder = CenterMass('tmp.nii.gz')
+        output = cmfinder.run()
+        print output
+        cm = output[0]
+        i = 0
+        for axis in cm:
+            new_affine[i][3] = new_affine[i][3] - axis
+            i = i + 1
+        os.chdir(self.olddir)
+        return new_affine
+
+    def run(self, filepath=''):
+        """Creates copy of source .nii file with a transform mapping the center of mass of the brain to (0, 0, 0) at filepath.
+        
+        Parameters
+        ----------
+        filepath:
+            Destination of new file with a center of mass transform.
+        """
+        print filepath
+        if filepath == '':
+            filepath = self.filepath.split('.nii')[0] + '_centered.nii'
+        new_affine = self.cmtransform() 
+        dir, file = os.path.split(filepath)
+        newimg = ni.Nifti1Image(self.img.get_data(), new_affine)
+        if dir:
+            os.chdir(dir)
+        newimg.to_filename(file)
+        os.chdir(self.olddir)
+        return filepath
+
+class CMAnalyze:
+   
+    def __init__(self, outputfile, use_mm = True, threshold = 20, overwrite = True):
+        """
+        Checks a .nii file for center of mass, and writes output to a .csv file.
+        This class will be renamed (hopefully)
+
+        Parameters
+        ----------
+        outputfile : str
+            str representing output file
+        use_mm : Bool
+            if True, use real space coordinates, else voxel coordinates 
+        threshold : int
+            maximum amount for center of mass of brain to differ from the origin of the coordinates
+            specified by use_mm
+        overwrite : Bool
+            if overwrite is True, will overwrite all data in outputfile
+
+
+        """
+        self.donotrun = False
+        self.threshold = threshold
+        self.use_mm = use_mm
+        self.overwrite = overwrite
+        if os.path.exists(outputfile) and not self.overwrite:
+            print 'Need permission to overwrite: ' + outputfile + ', please run without --no-overwrite option'
+            self.donotrun = True
             return
-        except OSError, e:
-            print "Path does not exist!"          
-            writer.add(output, [input, NA, NA, NA, NA, '!' + ANATOMY_PATH + ' does not exist!']) 
-    else: #this has not been tested thoroughly, use IDs as input if possible.
-        print input
-        id = '' 
-        pathlst = re.split('/', input)
-        try:
-            for dir in pathlst[:-1]:
-                os.chdir(dir)
-                if re.match('B[0-9]{2}-[0-9]{3}', dir):
-                    id = dir
-            if id == '':
-                print 'No patient ID found!'
-                return
-        except OSError:
-            print "Invalid path: " + input + "!"
-            return
-        filename = pathlst[-1]
-        arg = ''
-        finder = CMFinder()
-        writer = CSVOut()
-        try:
-            if outputtype == 'R':
-                data = [id] + finder.rfindcm(filename)
-                if writemode == 'w':
-                    writer.write(output, data)
-                else:
-                    writer.add(output, data)
-            else:
-                data = [id] + finder.vfindcm(filename) 
-                if writemode == 'w':
-                    writer.write(output, data)
-                else:
-                    writer.add(output, data)
-        except IOError:
-            os.chdir(prevdir)
-            writer.add(output, '!' + input + ' not found!') 
-            print filename + " not found for " + id + "!"
+        self.writer = CSVWriter(outputfile) 
+
+    def flags(self, path):
+        if self.donotrun:
+            return True
+        if not os.path.exists(path):
+            print path + ' does not exist!'
+            self.flag('path', path)
+            return True
+        if not re.search('B[0-9]{2}-[0-9]{3}', path):
+            print path + ' not in valid directory'
+            self.flag('dir', path)
+            return True
+        dir, filename = os.path.split(path)
+        if '.nii' not in filename:
+            print path + ' is not a valid nifti file'
+            self.flag('file', path)
+            return True
+
+    def flag(self, arg, path):
+        d = {'path': [path, 'na', 'na', 'na', 'na', 'na', '!path does not exist'], 'dir': [path, 'na', 'na', 'na', 'na', 'na', '!file not in a valid directory'], 'file': [path, 'na', 'na', 'na', 'na', 'na', '!invalid filetype']}
+        self.writer.writeline(d[arg])
+
+    def run(self, path):
+        """
+        Checks the center of mass of the file at path using options specified by constructor
+        and writes output to the file specified in the constructor
+        """
+        if self.flags(path):
             return
 
+        prevdir = os.getcwd()
+        idsearch = re.search('B[0-9]{2}-[0-9]{3}', path)
+        id = idsearch.group()
+        cm = CenterMass(path, self.use_mm, self.threshold)
+        output = cm.run()
+        
+        cm, dist, flags = output[0], output[1], output[2]
+        x, y, z = cm[0], cm[1], cm[2]
+        newline = [path, id, x, y, z, dist, flags]
+        self.writer.writeline(newline)
+        return newline
 
-if len(sys.argv) >= 3:
-    if '-R' in sys.argv:
-        outputtype = 'R'
+    def runlist(self, masterfile):
+        """
+        Reads a file containing a list of paths to .nii files and runs run() on each
+        """
+        filepaths = open(masterfile).readlines()
+        for file in filepaths:
+            self.run(file.rstrip('\n'))
+
+def main(inputtype, input, outputpath, threshold, overwrite = True, use_mm = True):
+    m = CMAnalyze(outputpath, use_mm, threshold, overwrite)    
+    if inputtype == 'list':
+        m.runlist(input)
+    elif inputtype == 'path':
+        m.run(input)
+    elif inputtype == 'dir': #this does not work
+        m.runfilesin(input)
     else:
-        outputtype = 'v'
+        print 'Please specify a valid input type' 
 
-    if '-w' in sys.argv:
-        writemode = 'w'
+
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser()
+    inputargs = parser.add_mutually_exclusive_group(required = True)
+    outputargs = parser.add_mutually_exclusive_group(required = True)
+    statsoption = parser.add_mutually_exclusive_group()
+
+    inputargs.add_argument('-f', help = 'specify an input file') #run on paths in plaintext file
+    inputargs.add_argument('-l', help = 'specify a file containing a list of input paths') #run on file at path
+    inputargs.add_argument('-d', help = 'specify a directory containing files to run') #does not work
+
+    statsoption.add_argument('-c', action = 'store_true')
+    statsoption.add_argument('-C', action = 'store_true')
+
+    outputargs.add_argument('-o', default = 'data.csv', help = 'specify an output file, defaults to ./data.csv') #output file
+    parser.add_argument('--no-overwrite', action = 'store_true')
+    parser.add_argument('-t', default = 20, help = 'specify a threshold for flagging a file as off center')
+
+    args = parser.parse_args()
+
+    if args.f:
+        readmode = 'path'
+        input = args.f 
+    elif args.l:
+        readmode = 'list'
+        input = args.l
+    elif args.d:
+        readmode = 'dir'
+        input = args.d
+     
+    if args.C:
+        use_mm = False
     else:
-        writemode = 'a'
+        use_mm = True
 
-    main(sys.argv[1], sys.argv[2], outputtype, writemode)
+    main(readmode, input, args.o, args.t, not args.no_overwrite, use_mm)

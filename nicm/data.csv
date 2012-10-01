@@ -1,0 +1,6 @@
+path,id,x,y,z,distance,flags?
+/home/jagust/UCSF/AD-v1/B05-206/fs_ss_anatomy/rad_nu_mri.nii,B05-206,-2.487565,-25.788502,18.35075,31.748776993700545,!off center
+/home/jagust/UCSF/AD-v1/B05-207/fs_ss_anatomy/rad_nu_mri.nii,B05-207,-1.260546,-30.419163,-20.343297,36.616446942171955,!off center
+/home/jagust/UCSF/AD-v1/B05-208/fs_ss_anatomy/rad_nu_mri.nii,na,na,na,na,na,!invalid path
+/home/jagust/UCSF/AD-v1/B08-213/fs_ss_anatomy/rad_nu_mri.nii,B08-213,-3.036779,-27.650486,10.492458,29.729834806349007,!off center
+/home/jagust/cwang/projects/nicm/filelist,na,na,na,na,na,!file not in a valid directory
