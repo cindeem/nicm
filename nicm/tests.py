@@ -1,4 +1,4 @@
-mport unittest
+import unittest
 import numpy as np
 import numpy.testing as npt
 import nicm 

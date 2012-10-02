@@ -57,13 +57,16 @@ class CenterMass():
         """ calculates center of mass of input image, and distance
         returns tuple (cm, dist, warning)"""
         com = fsl.ImageStats()
-        com.inputs.in_file = self.filename
+        com.inputs.in_file = os.path.abspath(self.filename)
         com.inputs.op_string = self._op
         output = com.run()
         if not output.runtime.returncode == 0:
             return (('na', 'na', 'na'), 'na', 'FAILED')
         self.cm = output.outputs.out_stat
-        return (tuple(self.cm), self._calc_dist(self.cm)[0], self._calc_dist(self.cm)[1])
+        return_val = (tuple(self.cm), 
+                    self._calc_dist(self.cm)[0], self._calc_dist(self.cm)[1])
+        print return_val
+        return return_val 
 
 class CSVIO:
 
@@ -74,29 +77,25 @@ class CSVIO:
         'a' = append
         'r' = read
         """
-        self.mode = mode
-        path, self.filename = os.path.split(filepath)
-        if not re.search('.csv', self.filename):
-            self.filename = self.filename + '.csv'
+        filepath = os.path.abspath(filepath)
+        if not re.search('.csv', filepath):
+            filepath = filepath + '.csv'
 
-        prevdir = os.getcwd()
-
-        if path:
-            os.chdir(path)
-        self.file = open(self.filename, self.mode)
+        file = open(self.filepath, mode)
         self.initialized = False
         if mode == 'w':
-            self.writer = csv.writer(self.file, delimiter = ',')  
+            self.writer = csv.writer(file, delimiter = ',')  
         elif mode == 'a':
             self.initialized = True
-            self.writer = csv.writer(self.file, delimiter = ',')  
+            self.writer = csv.writer(file, delimiter = ',')  
         elif mode == 'r':
-            self.reader = csv.reader(self.file, delimiter = ',')
-
-        os.chdir(prevdir)   
+            self.reader = csv.reader(file, delimiter = ',')
 
     def _init(self):
-        """Initializes the file with a header, overwriting existing content"""
+        """Prepares file for read/write.
+        In write mode, overwrites file and creates header in new file.
+        In read mode, skips first line.
+        """
         if self.initialized:
             return
         if self.mode == 'a':
@@ -136,29 +135,19 @@ class CMTransform:
         >> t = CMTransform('/home/jagust/UCSF/AD-v1/B05-206/fs_ss_anatomy/rad_nu_mri.nii')
         >> t.run('/home/jagust/output.nii')
         """
-
-        self.exists = True
-        if os.path.exists(filepath):
-            self.exists = False
-        self.olddir = os.getcwd()
-        self.filepath = filepath
+        self.filepath = os.path.abspath(filepath)
         self.dir, self.file = os.path.split(filepath)
-        if self.dir:
-            os.chdir(self.dir)
-        self.img = ni.load(self.file)
-        os.chdir(self.olddir)
+        self.img = ni.load(self.filepath)
 
     def dtransform(self):
         """returns affine transform that maps the center of the matrix (i/2, j/2, k/2) to (0, 0, 0)""" 
-        self.zooms = self.img.get_header().get_zooms()
-        self.shape = self.img.get_shape()
+        zooms = self.img.get_header().get_zooms()
+        shape = self.img.get_shape()
         self.old_affine = self.img.get_affine()
         new_affine = np.identity(4)
-        i = 0
-        for zoom in self.zooms:
-            new_affine[i, i] = zoom
-            new_affine[i, 3] = -1 * self.shape[i]/2
-            i = i + 1
+        for k, zoom in enumerate(zooms):
+            new_affine[k, k] = zoom
+            new_affine[k, 3] = -1 * shape[k]/2
         return new_affine
 
     def cmtransform(self):
@@ -166,20 +155,14 @@ class CMTransform:
         new_affine = self.dtransform()
         tempdir = tempfile.mkdtemp()
         newfile = os.path.join(tempdir, 'tmp.nii.gz')
-        if (self.dir):
-            os.chdir(self.dir)
         newimg = ni.Nifti1Image(self.img.get_data(), new_affine)
-        os.chdir(tempdir)
-        newimg.to_filename('tmp.nii.gz')
-        cmfinder = CenterMass('tmp.nii.gz')
+        temppath = os.path.join(os.path.abspath(tempdir), 'tmp.nii.gz')
+        newimg.to_filename(temppath)
+        cmfinder = CenterMass(temppath)
         output = cmfinder.run()
-        print output
         cm = output[0]
-        i = 0
-        for axis in cm:
-            new_affine[i][3] = new_affine[i][3] - axis
-            i = i + 1
-        os.chdir(self.olddir)
+        for k,v in enumerate(cm):
+            new_affine[k][3] = new_affine[k][3] - v
         return new_affine
 
     def run(self, filepath=''):
@@ -192,14 +175,10 @@ class CMTransform:
         """
         print filepath
         if filepath == '':
-            filepath = self.filepath.split('.nii')[0] + '_centered.nii'
+            filepath = os.path.abspath(self.filepath.split('.nii')[0] + '_centered.nii')
         new_affine = self.cmtransform() 
-        dir, file = os.path.split(filepath)
         newimg = ni.Nifti1Image(self.img.get_data(), new_affine)
-        if dir:
-            os.chdir(dir)
-        newimg.to_filename(file)
-        os.chdir(self.olddir)
+        newimg.to_filename(filepath)
         return filepath
 
 class CMAnalyze:
@@ -254,22 +233,22 @@ class CMAnalyze:
         d = {'path': [path, 'na', 'na', 'na', 'na', 'na', '!path does not exist'], 'dir': [path, 'na', 'na', 'na', 'na', 'na', '!file not in a valid directory'], 'file': [path, 'na', 'na', 'na', 'na', 'na', '!invalid filetype']}
         self.writer.writeline(d[arg])
 
-    def run(self, path):
+    def run(self, filepath):
         """
         Checks the center of mass of the file at path using options specified by constructor
         and writes output to the file specified in the constructor
         """
-        if self.flags(path):
+        if self.flags(filepath):
             return
 
         idsearch = re.search('B[0-9]{2}-[0-9]{3}', path)
         id = idsearch.group()
-        cm = CenterMass(path, self.use_mm, self.threshold)
+        cm = CenterMass(filepath, self.use_mm, self.threshold)
         output = cm.run()
         
         cm, dist, flags = output[0], output[1], output[2]
         x, y, z = cm[0], cm[1], cm[2]
-        newline = [path, id, x, y, z, dist, flags]
+        newline = [filepath, id, x, y, z, dist, flags]
         self.writer.writeline(newline)
         return newline
 
