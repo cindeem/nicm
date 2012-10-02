@@ -165,7 +165,7 @@ class CMTransform:
             new_affine[k][3] = new_affine[k][3] - v
         return new_affine
 
-    def run(self, filepath=''):
+    def fix(self, filepath=''):
         """Creates copy of source .nii file with a transform mapping the center of mass of the brain to (0, 0, 0) at filepath.
         
         Parameters
@@ -260,7 +260,7 @@ class CMAnalyze:
         for file in filepaths:
             self.run(file.rstrip('\n'))
 
-def main(input, outputpath, threshold, writemode='w',overwrite = True, use_mm = True):
+def main(input, outputpath, fix, threshold, writemode='w',overwrite = True, use_mm = True):
     """outputs center of mass of a file to a csv file
 
     Usage:
@@ -268,6 +268,9 @@ def main(input, outputpath, threshold, writemode='w',overwrite = True, use_mm = 
     """
     m = CMAnalyze(outputpath, use_mm, threshold, overwrite)    
     m.run(input)
+    if fix:
+        t = CMTransform(input)
+        t.fix()
 
 if __name__ == "__main__":
 
@@ -293,4 +296,4 @@ if __name__ == "__main__":
     else:
         use_mm = True
 
-    main(input, output, args.m, args.t, not args.no_overwrite, use_mm)
+    main(input, output, args.m, args,f, args.t, not args.no_overwrite, use_mm)

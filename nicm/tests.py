@@ -49,5 +49,5 @@ if __name__ == '__main__':
     dtransform = 0
     cmtransform = 0
     npt.assert_equal(transform.dtransform(), dtransform)
-    npt.ssert_equal(transform.cmtransform(), cmtransform)
+    npt.assert_equal(transform.cmtransform(), cmtransform)
 
