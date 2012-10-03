@@ -56,6 +56,7 @@ class CenterMass():
     def run(self):
         """ calculates center of mass of input image, and distance
         returns tuple (cm, dist, warning)"""
+        ##!! note of other package used
         com = fsl.ImageStats()
         com.inputs.in_file = os.path.abspath(self.filename)
         com.inputs.op_string = self._op
@@ -64,7 +65,8 @@ class CenterMass():
             return (('na', 'na', 'na'), 'na', 'FAILED')
         self.cm = output.outputs.out_stat
         return_val = (tuple(self.cm), 
-                    self._calc_dist(self.cm)[0], self._calc_dist(self.cm)[1])
+                      self._calc_dist(self.cm)[0],
+                      self._calc_dist(self.cm)[1])
         print return_val
         return return_val 
 
@@ -91,7 +93,7 @@ class CSVIO:
         elif mode == 'r':
             self.reader = csv.reader(file, delimiter = ',')
 
-    def _init(self):
+    def _init(self): ##!! better name?
         """Prepares file for read/write.
         In write mode, overwrites file and creates header in new file.
         In read mode, skips first line.
@@ -115,7 +117,7 @@ class CSVIO:
 
     def readline(self):
         if not self.initialized:
-            self._init()
+            self._init() ##!! skip first (header) line 
         return self.reader.next()
 
 class CMTransform:
@@ -140,7 +142,8 @@ class CMTransform:
         self.img = ni.load(self.filepath)
 
     def dtransform(self):
-        """returns affine transform that maps the center of the matrix (i/2, j/2, k/2) to (0, 0, 0)""" 
+        """returns affine transform that maps the center
+        of the matrix (i/2, j/2, k/2) to (0, 0, 0)""" 
         zooms = self.img.get_header().get_zooms()
         shape = self.img.get_shape()
         self.old_affine = self.img.get_affine()
@@ -151,7 +154,8 @@ class CMTransform:
         return new_affine
 
     def cmtransform(self):
-        """returns affine transform that maps the center of mass of the brain to (0, 0, 0)"""
+        """returns affine transform that maps the center
+        of mass of the brain to (0, 0, 0)"""
         new_affine = self.dtransform()
         tempdir = tempfile.mkdtemp()
         newfile = os.path.join(tempdir, 'tmp.nii.gz')
@@ -161,12 +165,13 @@ class CMTransform:
         cmfinder = CenterMass(temppath)
         output = cmfinder.run()
         cm = output[0]
-        for k,v in enumerate(cm):
+        for k, v in enumerate(cm):
             new_affine[k][3] = new_affine[k][3] - v
         return new_affine
 
     def fix(self, filepath=''):
-        """Creates copy of source .nii file with a transform mapping the center of mass of the brain to (0, 0, 0) at filepath.
+        """Creates copy of source .nii file with a transform
+        mapping the center of mass of the brain to (0, 0, 0) at filepath.
         
         Parameters
         ----------
@@ -175,7 +180,9 @@ class CMTransform:
         """
         print filepath
         if filepath == '':
-            filepath = os.path.abspath(self.filepath.split('.nii')[0] + '_centered.nii')
+            ##!! possibly handle nii and nii.gz
+            filepath = os.path.abspath(self.filepath.split('.nii')[0] +\
+                                       '_centered.nii')
         new_affine = self.cmtransform() 
         newimg = ni.Nifti1Image(self.img.get_data(), new_affine)
         newimg.to_filename(filepath)
@@ -183,9 +190,12 @@ class CMTransform:
 
 class CMAnalyze:
    
-    def __init__(self, outputfile, use_mm = True, threshold = 20, overwrite = True):
+    def __init__(self, outputfile, use_mm = True, threshold = 20,\
+                 overwrite = True):
         """
-        Checks a .nii file for center of mass, and writes output to a .csv file.
+        Checks a .nii file for center of mass, and writes output to
+        a .csv file.
+
         This class will be renamed (hopefully)
 
         Parameters
@@ -195,7 +205,8 @@ class CMAnalyze:
         use_mm : Bool
             if True, use real space coordinates, else voxel coordinates 
         threshold : int
-            maximum amount for center of mass of brain to differ from the origin of the coordinates
+            maximum amount for center of mass of brain to differ
+            from the origin of the coordinates
             specified by use_mm
         overwrite : Bool
             if overwrite is True, will overwrite all data in outputfile
@@ -207,7 +218,8 @@ class CMAnalyze:
         self.use_mm = use_mm
         self.overwrite = overwrite
         if os.path.exists(outputfile) and not self.overwrite:
-            print 'Need permission to overwrite: ' + outputfile + ', please run without --no-overwrite option'
+            print 'Need permission to overwrite: ' + outputfile +\
+                  ', please run without --no-overwrite option'
             self.donotrun = True
             return
         self.writer = CSVIO(outputfile) 
@@ -230,12 +242,18 @@ class CMAnalyze:
             return True
 
     def flag(self, arg, path):
-        d = {'path': [path, 'na', 'na', 'na', 'na', 'na', '!path does not exist'], 'dir': [path, 'na', 'na', 'na', 'na', 'na', '!file not in a valid directory'], 'file': [path, 'na', 'na', 'na', 'na', 'na', '!invalid filetype']}
+        d = {'path': [path, 'na', 'na', 'na', 'na', 'na',
+                      '!path does not exist'],
+             'dir': [path, 'na', 'na', 'na', 'na', 'na',
+                     '!file not in a valid directory'],
+             'file': [path, 'na', 'na', 'na', 'na', 'na',
+                      '!invalid filetype']}
         self.writer.writeline(d[arg])
 
     def run(self, filepath):
         """
-        Checks the center of mass of the file at path using options specified by constructor
+        Checks the center of mass of the file at path using options
+        specified by constructor
         and writes output to the file specified in the constructor
         """
         if self.flags(filepath):
@@ -245,7 +263,8 @@ class CMAnalyze:
         id = idsearch.group()
         cm = CenterMass(filepath, self.use_mm, self.threshold)
         output = cm.run()
-        
+        ##!! simplify this:
+        ##!! (x, y, z), dist, flags = cm.run()
         cm, dist, flags = output[0], output[1], output[2]
         x, y, z = cm[0], cm[1], cm[2]
         newline = [filepath, id, x, y, z, dist, flags]
@@ -254,13 +273,15 @@ class CMAnalyze:
 
     def runlist(self, masterfile):
         """
-        Reads a file containing a list of paths to .nii files and runs run() on each
+        Reads a file containing a list of paths to .nii files
+        and runs run() on each
         """
         filepaths = open(masterfile).readlines()
         for file in filepaths:
             self.run(file.rstrip('\n'))
 
-def main(input, outputpath, fix, threshold, writemode='w',overwrite = True, use_mm = True):
+def main(input, outputpath, fix, threshold, writemode='w',\
+         overwrite = True, use_mm = True):
     """outputs center of mass of a file to a csv file
 
     Usage:
@@ -278,14 +299,17 @@ if __name__ == "__main__":
     parser.add_argument('input', required = True)
     parser.add_argument('output')
     parser.add_argument('-m', default = 'w') #specify a write mode
-
+    ##!! look at parser.add_argument(...choices=['r','w']
+    ##!! http://docs.python.org/dev/library/argparse.html#choices
     statsoption = parser.add_mutually_exclusive_group()
     statsoption.add_argument('-c', action = 'store_true')
     statsoption.add_argument('-C', action = 'store_true')
 
     parser.add_argument('-f', action = 'store_true', help = 'fix')
     parser.add_argument('--no-overwrite', action = 'store_true')
-    parser.add_argument('-t', default = 20, help = 'specify a threshold for flagging a file as off center')
+    parser.add_argument('-t', default = 20,
+                        help = 'specify a threshold for flagging a'\
+                        ' file as off center')
 
     args = parser.parse_args()
     input = args.input
