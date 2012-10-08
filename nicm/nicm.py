@@ -61,7 +61,7 @@ class CenterMass():
         com.inputs.in_file = os.path.abspath(self.filename)
         com.inputs.op_string = self._op
         output = com.run()
-        if not output.runtime.returncode == 0:
+        if output.runtime.returncode != 0:
             return (('na', 'na', 'na'), 'na', 'FAILED')
         self.cm = output.outputs.out_stat
         return_val = (tuple(self.cm), 
@@ -79,18 +79,19 @@ class CSVIO:
         'a' = append
         'r' = read
         """
+        self.mode = mode
         filepath = os.path.abspath(filepath)
         if not re.search('.csv', filepath):
             filepath = filepath + '.csv'
 
-        file = open(self.filepath, mode)
+        file = open(filepath, mode)
         self.initialized = False
-        if mode == 'w':
+        if self.mode == 'w':
             self.writer = csv.writer(file, delimiter = ',')  
-        elif mode == 'a':
+        elif self.mode == 'a':
             self.initialized = True
             self.writer = csv.writer(file, delimiter = ',')  
-        elif mode == 'r':
+        elif self.mode == 'r':
             self.reader = csv.reader(file, delimiter = ',')
 
     def _init(self): ##!! better name?
@@ -133,6 +134,7 @@ class CMTransform:
             location of .nii file for which to create transform matrix
 
         Seems to work with relative filepaths.
+        Works with .nii.gz and .nii files
         
         >> t = CMTransform('/home/jagust/UCSF/AD-v1/B05-206/fs_ss_anatomy/rad_nu_mri.nii')
         >> t.run('/home/jagust/output.nii')
@@ -140,6 +142,11 @@ class CMTransform:
         self.filepath = os.path.abspath(filepath)
         self.dir, self.file = os.path.split(filepath)
         self.img = ni.load(self.filepath)
+        if 'nii.gz' in filepath:
+            self.fileext = '.nii.gz'
+        else:
+            self.fileext = '.nii'
+
 
     def dtransform(self):
         """returns affine transform that maps the center
@@ -181,8 +188,8 @@ class CMTransform:
         print filepath
         if filepath == '':
             ##!! possibly handle nii and nii.gz
-            filepath = os.path.abspath(self.filepath.split('.nii')[0] +\
-                                       '_centered.nii')
+            filepath = os.path.abspath(self.filepath.split(self.fileext)[0] +\
+                                       '_centered' + self.fileext)
         new_affine = self.cmtransform() 
         newimg = ni.Nifti1Image(self.img.get_data(), new_affine)
         newimg.to_filename(filepath)
@@ -195,8 +202,6 @@ class CMAnalyze:
         """
         Checks a .nii file for center of mass, and writes output to
         a .csv file.
-
-        This class will be renamed (hopefully)
 
         Parameters
         ----------
@@ -259,14 +264,10 @@ class CMAnalyze:
         if self.flags(filepath):
             return
 
-        idsearch = re.search('B[0-9]{2}-[0-9]{3}', path)
+        idsearch = re.search('B[0-9]{2}-[0-9]{3}', filepath)
         id = idsearch.group()
         cm = CenterMass(filepath, self.use_mm, self.threshold)
-        output = cm.run()
-        ##!! simplify this:
-        ##!! (x, y, z), dist, flags = cm.run()
-        cm, dist, flags = output[0], output[1], output[2]
-        x, y, z = cm[0], cm[1], cm[2]
+        (x, y, z), dist, flags = cm.run()
         newline = [filepath, id, x, y, z, dist, flags]
         self.writer.writeline(newline)
         return newline
@@ -280,13 +281,15 @@ class CMAnalyze:
         for file in filepaths:
             self.run(file.rstrip('\n'))
 
-def main(input, outputpath, fix, threshold, writemode='w',\
+def main(input, outputpath, fix, threshold, writemode='w',
          overwrite = True, use_mm = True):
     """outputs center of mass of a file to a csv file
 
     Usage:
         python nicm.py input output
     """
+    if outputpath == None:
+        outputpath = os.path.join(os.path.split(input)[0], 'data.csv')
     m = CMAnalyze(outputpath, use_mm, threshold, overwrite)    
     m.run(input)
     if fix:
@@ -296,9 +299,9 @@ def main(input, outputpath, fix, threshold, writemode='w',\
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('input', required = True)
-    parser.add_argument('output')
-    parser.add_argument('-m', default = 'w') #specify a write mode
+    parser.add_argument('input')
+    parser.add_argument('-o')
+    parser.add_argument('-m', choices = ['r', 'w', 'a'], default = 'w') #specify a write mode
     ##!! look at parser.add_argument(...choices=['r','w']
     ##!! http://docs.python.org/dev/library/argparse.html#choices
     statsoption = parser.add_mutually_exclusive_group()
@@ -312,12 +315,9 @@ if __name__ == "__main__":
                         ' file as off center')
 
     args = parser.parse_args()
-    input = args.input
-    output = args.output
 
     if args.C:
         use_mm = False
     else:
         use_mm = True
-
-    main(input, output, args.m, args,f, args.t, not args.no_overwrite, use_mm)
+    main(args.input, args.o, args.f, args.t, args.m, not args.no_overwrite, use_mm)

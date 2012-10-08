@@ -16,38 +16,49 @@ if __name__ == '__main__':
     """
 
     # test center of mass
-    infile = 'testdata/B12-253_PIB00000.nii.gz'
+    infile = 'test/B00-100/test.nii'
     npt.assert_raises(TypeError, nicm.CenterMass)
     center_of_mass = nicm.CenterMass(infile)
     npt.assert_equal(center_of_mass.filename, infile)
     npt.assert_equal(center_of_mass.thresh, 20)
     npt.assert_equal(center_of_mass._op , '-c')
     center_of_mass = nicm.CenterMass(infile).run()
-    npt.assert_almost_equal(center_of_mass[1], 450.95794588, decimal=4)
+    npt.assert_almost_equal(center_of_mass[1], 17.1828, decimal=4)
+    npt.assert_almost_equal(center_of_mass[0], (10.5, 4., 13.), decimal=4)
 
-    outfile = 'test.csv'
-    writer = CSVIO(outfile, 'a')
-    npt.assert_equal(writer.filename, outfile)
+    outfile = 'test/test.csv'
+    writer = nicm.CSVIO(outfile, 'a')
     npt.assert_equal(writer.initialized, True)
     line = ['kitty', 'hawk', 'princess', 'butterfly']
-    writer = CSVIO(outfile, 'w')
+    writer = nicm.CSVIO(outfile, 'w')
     writer.writeline(line)
-    reader = CSVIO(outfile, 'r')
-    npt.assert_equal(reader.readline(), line)
+    writer.writeline(line)
+    reader = nicm.CSVIO(outfile, 'r')
+    #npt.assert_equal(reader.readline(), line)
      
-    analyze = CMAnalyze(infile) 
+    analyze = nicm.CMAnalyze(infile) 
     npt.assert_equal(analyze.use_mm, True)
     npt.assert_equal(analyze.threshold, 20)
     npt.assert_equal(analyze.overwrite, True)
-    npt.assert_equal(analyze.outputfile, infile)
 
     npt.assert_equal(analyze.flags('test/notaniftifile.txt'), True)
     npt.assert_equal(analyze.flags('test/notafile.nii'), True)
 
-    transform = CMTransform(infile)
-    npt.assert_equal(analyze.filepath, infile)
-    dtransform = 0
-    cmtransform = 0
+    transform = nicm.CMTransform(infile)
+    dtransform = np.array([[1., 0., 0., -10.],
+                          [0., 1., 0., -10.],
+                          [0., 0., 2., -5.,],
+                          [0., 0., 0., 1.,]])
+    cmtransform = np.array([[1., 0., 0., -10.5],
+                            [0., 1., 0., -4.],
+                            [0., 0., 2., -13.,],
+                            [0., 0., 0., 1.,]])
     npt.assert_equal(transform.dtransform(), dtransform)
     npt.assert_equal(transform.cmtransform(), cmtransform)
+
+    test_centered = transform.fix()
+    center_mass = nicm.CenterMass(test_centered).run()
+    npt.assert_almost_equal(center_mass[1], 0.0, decimal=4)
+    npt.assert_almost_equal(center_mass[0], (0., 0., 0.), decimal=4)
+
 
