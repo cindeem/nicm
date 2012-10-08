@@ -11,6 +11,7 @@ import numpy as np
 import argparse
 import tempfile
 
+
 class CenterMass():
 
     def __init__(self, filename, use_mm = True, thresh = 20):
@@ -69,7 +70,9 @@ class CenterMass():
                       self._calc_dist(self.cm)[0],
                       self._calc_dist(self.cm)[1])
         print return_val
+        os.remove(os.path.join(os.path.split(os.path.abspath(__file__))[0], 'stat_result.json'))
         return return_val 
+
 
 class CSVIO:
 
@@ -125,6 +128,7 @@ class CSVIO:
     def close(self):
         """Closes the file"""
         self.file.close()
+
 
 class CMTransform:
     
@@ -198,6 +202,7 @@ class CMTransform:
         newimg = ni.Nifti1Image(self.img.get_data(), new_affine)
         newimg.to_filename(filepath)
         return filepath
+
 
 class CMAnalyze:
    
@@ -285,6 +290,7 @@ class CMAnalyze:
         for file in filepaths:
             self.run(file.rstrip('\n'))
 
+
 def main(input, outputpath, fix, threshold, writemode='w',
          overwrite = True, use_mm = True):
     """outputs center of mass of a file to a csv file
@@ -299,7 +305,6 @@ def main(input, outputpath, fix, threshold, writemode='w',
     if fix:
         t = CMTransform(input)
         t.fix()
-    os.remove(os.path.join(os.path.split(os.path.abspath(__file__))[0], 'stat_result.json'))
 
 if __name__ == "__main__":
 
