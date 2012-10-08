@@ -1,4 +1,4 @@
-#!/usr/local/epd/bin/python
+"""Requires nipype, numpy, nibabel, and fsl"""
 
 from math import sqrt
 import sys
@@ -35,6 +35,7 @@ class CenterMass():
             dist is distance of center of mass from (0,0,0)
             warning is '' if dist < thresh, otherwise '!off center'
 
+        Requires nipype and fsl to run.
         """
 
         self.filename = filename
