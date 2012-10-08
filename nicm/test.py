@@ -36,13 +36,14 @@ if __name__ == '__main__':
     reader = nicm.CSVIO(outfile, 'r')
     #npt.assert_equal(reader.readline(), line)
      
-    analyze = nicm.CMAnalyze(infile) 
+    analyze = nicm.CMAnalyze('test/data.csv') 
     npt.assert_equal(analyze.use_mm, True)
     npt.assert_equal(analyze.threshold, 20)
     npt.assert_equal(analyze.overwrite, True)
 
     npt.assert_equal(analyze.flags('test/notaniftifile.txt'), True)
     npt.assert_equal(analyze.flags('test/notafile.nii'), True)
+    analyze.run(infile)
 
     transform = nicm.CMTransform(infile)
     dtransform = np.array([[1., 0., 0., -10.],
