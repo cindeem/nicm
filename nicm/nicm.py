@@ -1,4 +1,4 @@
-"""Requires nipype, numpy, nibabel, and fsl"""
+# Requires nipype, numpy, nibabel, and fsl
 
 from math import sqrt
 import sys
@@ -85,15 +85,15 @@ class CSVIO:
         if not re.search('.csv', filepath):
             filepath = filepath + '.csv'
 
-        file = open(filepath, mode)
+        self.file = open(filepath, mode)
         self.initialized = False
         if self.mode == 'w':
-            self.writer = csv.writer(file, delimiter = ',')  
+            self.writer = csv.writer(self.file, delimiter = ',')  
         elif self.mode == 'a':
             self.initialized = True
-            self.writer = csv.writer(file, delimiter = ',')  
+            self.writer = csv.writer(self.file, delimiter = ',')  
         elif self.mode == 'r':
-            self.reader = csv.reader(file, delimiter = ',')
+            self.reader = csv.reader(self.file, delimiter = ',')
 
     def _init(self): ##!! better name?
         """Prepares file for read/write.
@@ -122,6 +122,10 @@ class CSVIO:
             self._init() ##!! skip first (header) line 
         return self.reader.next()
 
+    def close(self):
+        """Closes the file"""
+        self.file.close()
+
 class CMTransform:
     
     def __init__(self, filepath):
@@ -147,7 +151,6 @@ class CMTransform:
             self.fileext = '.nii.gz'
         else:
             self.fileext = '.nii'
-
 
     def dtransform(self):
         """returns affine transform that maps the center
@@ -296,6 +299,7 @@ def main(input, outputpath, fix, threshold, writemode='w',
     if fix:
         t = CMTransform(input)
         t.fix()
+    os.remove(os.path.join(os.path.split(os.path.abspath(__file__))[0], 'stat_result.json'))
 
 if __name__ == "__main__":
 
