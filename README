@@ -1,1 +1,5 @@
-This is a pretty useless README
+Required packages:
+nipype
+nibabel
+fsl
+numpy
