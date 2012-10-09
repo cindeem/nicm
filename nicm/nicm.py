@@ -99,8 +99,8 @@ class CSVIO:
         elif self.mode == 'r':
             self.reader = csv.reader(self.file, delimiter = ',')
 
-    def _init(self): ##!! better name?
-        """Prepares file for read/write.
+    def _setup(self): ##!! better name?
+        """Sets up file for read/write.
         In write mode, overwrites file and creates header in new file.
         In read mode, skips first line.
         """
@@ -118,12 +118,12 @@ class CSVIO:
 
     def writeline(self, output):
         if not self.initialized:
-            self._init()
+            self._setup()
         self.writer.writerow(output)
 
     def readline(self):
         if not self.initialized:
-            self._init() ##!! skip first (header) line 
+            self._setup() ##!! skip first (header) line 
         return self.reader.next()
 
     def close(self):
@@ -133,14 +133,14 @@ class CSVIO:
 
 class CMTransform:
     
-    def __init__(self, filepath):
+    def __init__(self, filename):
         """Calculates transform that maps the center of mass of a brain 
         at filepath to (0, 0, 0), and writes a copy of the brain 
         to a new .nii file with the calculated transform.
         
         Params
         ------
-        filepath
+        filename
             location of .nii file for which to create transform matrix
 
         Seems to work with relative filepaths.
@@ -149,10 +149,10 @@ class CMTransform:
         >> t = CMTransform('/home/jagust/UCSF/AD-v1/B05-206/fs_ss_anatomy/rad_nu_mri.nii')
         >> t.run('/home/jagust/output.nii')
         """
-        self.filepath = os.path.abspath(filepath)
-        self.dir, self.file = os.path.split(filepath)
-        self.img = ni.load(self.filepath)
-        if 'nii.gz' in filepath:
+        self.filename = os.path.abspath(filename)
+        self.dir, self.file = os.path.split(filename)
+        self.img = ni.load(self.filename)
+        if 'nii.gz' in filename:
             self.fileext = '.nii.gz'
         else:
             self.fileext = '.nii'
@@ -185,24 +185,23 @@ class CMTransform:
             new_affine[k][3] = new_affine[k][3] - v
         return new_affine
 
-    def fix(self, filepath=''):
+    def fix(self, new_file=''):
         """Creates copy of source .nii file with a transform
-        mapping the center of mass of the brain to (0, 0, 0) at filepath.
+        mapping the center of mass of the brain to (0, 0, 0) at new_file.
         
         Parameters
         ----------
-        filepath:
+        new_file:
             Destination of new file with a center of mass transform.
         """
-        print filepath
-        if filepath == '':
-            ##!! possibly handle nii and nii.gz
-            filepath = os.path.abspath(self.filepath.split(self.fileext)[0] +\
+        if new_file == '':
+            new_file = os.path.abspath(self.filename.split(self.fileext)[0] +\
                                        '_centered' + self.fileext)
+        print new_file
         new_affine = self.cmtransform() 
         newimg = ni.Nifti1Image(self.img.get_data(), new_affine)
-        newimg.to_filename(filepath)
-        return filepath
+        newimg.to_filename(new_file)
+        return new_file
 
 
 class CMAnalyze:
