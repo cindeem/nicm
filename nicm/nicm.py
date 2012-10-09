@@ -59,24 +59,25 @@ class CenterMass():
         """ calculates center of mass of input image, and distance
         returns tuple (cm, dist, warning)"""
         ##!! note of other package used
+        cwd = os.getcwd()
         com = fsl.ImageStats()
         com.inputs.in_file = os.path.abspath(self.filename)
         com.inputs.op_string = self._op
         output = com.run()
         if output.runtime.returncode != 0:
-            return (('na', 'na', 'na'), 'na', 'FAILED')
+            return (('na', 'na', 'na'), 'na', 'FAILED with errorcode ' + output.runtime.returncode)
         self.cm = output.outputs.out_stat
         return_val = (tuple(self.cm), 
                       self._calc_dist(self.cm)[0],
                       self._calc_dist(self.cm)[1])
-        print return_val
-        os.remove(os.path.join(os.path.split(os.path.abspath(__file__))[0], 'stat_result.json'))
+        print os.path.abspath(self.filename) + ':\n' + str(return_val) + '\n'
+        os.remove(os.path.join(cwd, 'stat_result.json'))
         return return_val 
 
 
 class CSVIO:
 
-    def __init__(self, filepath, mode = 'w'):
+    def __init__(self, filename, mode = 'w'):
         """
         Modes:
         'w' = (over)write
@@ -84,11 +85,11 @@ class CSVIO:
         'r' = read
         """
         self.mode = mode
-        filepath = os.path.abspath(filepath)
-        if not re.search('.csv', filepath):
-            filepath = filepath + '.csv'
+        filename = os.path.abspath(filename)
+        if not re.search('.csv', filename):
+            filename = filename + '.csv'
 
-        self.file = open(filepath, mode)
+        self.file = open(filename, mode)
         self.initialized = False
         if self.mode == 'w':
             self.writer = csv.writer(self.file, delimiter = ',')  
@@ -112,7 +113,7 @@ class CSVIO:
             self.reader.next()
             self.initialized = True
             return
-        self.writer.writerow(['path','id', 'x', 'y', 'z', 'distance', 'flags?'])
+        self.writer.writerow(['path','id', 'x', 'y', 'z', 'distance', 'warning flags'])
         self.initialized = True
 
     def writeline(self, output):
@@ -206,7 +207,7 @@ class CMTransform:
 
 class CMAnalyze:
    
-    def __init__(self, outputfile, use_mm = True, threshold = 20,\
+    def __init__(self, outputfile, mode, use_mm = True, threshold = 20,\
                  overwrite = True):
         """
         Checks a .nii file for center of mass, and writes output to
@@ -236,48 +237,49 @@ class CMAnalyze:
                   ', please run without --no-overwrite option'
             self.donotrun = True
             return
-        self.writer = CSVIO(outputfile) 
+        self.writer = CSVIO(outputfile, mode) 
 
-    def flags(self, path):
+    def flags(self, file):
         if self.donotrun:
             return True
-        if not os.path.exists(path):
-            print path + ' does not exist!'
-            self.flag('path', path)
+        if not os.path.exists(file):
+            print filename + ' does not exist!'
+            self.flag('path', file)
             return True
-        if not re.search('B[0-9]{2}-[0-9]{3}', path):
-            print path + ' not in valid directory'
-            self.flag('dir', path)
+        if not re.search('B[0-9]{2}-[0-9]{3}', file):
+            print file + ' not in valid directory'
+            self.flag('dir', file)
             return True
-        dir, filename = os.path.split(path)
+        dir, filename = os.path.split(file)
         if '.nii' not in filename:
-            print path + ' is not a valid nifti file'
-            self.flag('file', path)
+            print file + ' is not a valid nifti file'
+            self.flag('filename', file)
             return True
 
-    def flag(self, arg, path):
-        d = {'path': [path, 'na', 'na', 'na', 'na', 'na',
+    def flag(self, arg, file):
+        d = {'path': [file, 'na', 'na', 'na', 'na', 'na',
                       '!path does not exist'],
-             'dir': [path, 'na', 'na', 'na', 'na', 'na',
+             'dir': [file, 'na', 'na', 'na', 'na', 'na',
                      '!file not in a valid directory'],
-             'file': [path, 'na', 'na', 'na', 'na', 'na',
+             'file': [file, 'na', 'na', 'na', 'na', 'na',
                       '!invalid filetype']}
         self.writer.writeline(d[arg])
 
-    def run(self, filepath):
+    def run(self, filename):
         """
         Checks the center of mass of the file at path using options
         specified by constructor
         and writes output to the file specified in the constructor
         """
-        if self.flags(filepath):
+        filename = os.path.abspath(filename)
+        if self.flags(filename):
             return
 
-        idsearch = re.search('B[0-9]{2}-[0-9]{3}', filepath)
+        idsearch = re.search('B[0-9]{2}-[0-9]{3}', filename)
         id = idsearch.group()
-        cm = CenterMass(filepath, self.use_mm, self.threshold)
+        cm = CenterMass(filename, self.use_mm, self.threshold)
         (x, y, z), dist, flags = cm.run()
-        newline = [filepath, id, x, y, z, dist, flags]
+        newline = [filename, id, x, y, z, dist, flags]
         self.writer.writeline(newline)
         return newline
 
@@ -286,21 +288,21 @@ class CMAnalyze:
         Reads a file containing a list of paths to .nii files
         and runs run() on each
         """
-        filepaths = open(masterfile).readlines()
-        for file in filepaths:
+        files = open(masterfile).readlines()
+        for file in files:
             self.run(file.rstrip('\n'))
 
 
-def main(input, outputpath, fix, threshold, writemode='w',
+def main(input, outputfile, writemode, fix, threshold,
          overwrite = True, use_mm = True):
     """outputs center of mass of a file to a csv file
 
     Usage:
         python nicm.py input output
     """
-    if outputpath == None:
-        outputpath = os.path.join(os.path.split(input)[0], 'data.csv')
-    m = CMAnalyze(outputpath, use_mm, threshold, overwrite)    
+    if outputfile == None:
+        outputfile = os.path.join(os.path.split(input)[0], 'data.csv')
+    m = CMAnalyze(outputfile, writemode, use_mm, threshold, overwrite)    
     m.run(input)
     if fix:
         t = CMTransform(input)
@@ -311,7 +313,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('input')
     parser.add_argument('-o')
-    parser.add_argument('-m', choices = ['r', 'w', 'a'], default = 'w') #specify a write mode
+    parser.add_argument('-m', choices = ['w', 'a'], default = 'w') #specify a write mode
     ##!! look at parser.add_argument(...choices=['r','w']
     ##!! http://docs.python.org/dev/library/argparse.html#choices
     statsoption = parser.add_mutually_exclusive_group()
@@ -330,4 +332,4 @@ if __name__ == "__main__":
         use_mm = False
     else:
         use_mm = True
-    main(args.input, args.o, args.f, args.t, args.m, not args.no_overwrite, use_mm)
+    main(args.input, args.o, args.m, args.f, args.t, not args.no_overwrite, use_mm)
