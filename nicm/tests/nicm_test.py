@@ -36,3 +36,6 @@ class TestCenterMass(TestCase):
         assert_almost_equal(center_of_mass[0], (10.5, 4., 13.),
                             decimal = 2)
         
+
+class TestCSVIO(TestCase):
+    pass
