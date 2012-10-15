@@ -16,7 +16,7 @@ if __name__ == '__main__':
     """
 
     # test center of mass
-    infile = 'test/B00-100/test.nii'
+    infile = 'nicm_test/B00-100/test.nii'
     npt.assert_raises(TypeError, nicm.CenterMass)
     center_of_mass = nicm.CenterMass(infile)
     npt.assert_equal(center_of_mass.filename, infile)
@@ -26,7 +26,7 @@ if __name__ == '__main__':
     npt.assert_almost_equal(center_of_mass[1], 17.1828, decimal=4)
     npt.assert_almost_equal(center_of_mass[0], (10.5, 4., 13.), decimal=4)
 
-    outfile = 'test/test.csv'
+    outfile = 'nicm_test/test.csv'
     writer = nicm.CSVIO(outfile, 'a')
     npt.assert_equal(writer.initialized, True)
     line = ['kitty', 'hawk', 'princess', 'butterfly']
@@ -36,13 +36,13 @@ if __name__ == '__main__':
     reader = nicm.CSVIO(outfile, 'r')
     #npt.assert_equal(reader.readline(), line)
      
-    analyze = nicm.CMAnalyze('test/data.csv') 
+    analyze = nicm.CMAnalyze('nicm_test/data.csv') 
     npt.assert_equal(analyze.use_mm, True)
     npt.assert_equal(analyze.threshold, 20)
     npt.assert_equal(analyze.overwrite, True)
 
-    npt.assert_equal(analyze.flags('test/notaniftifile.txt'), True)
-    npt.assert_equal(analyze.flags('test/notafile.nii'), True)
+    npt.assert_equal(analyze.flags('nicm_test/notaniftifile.txt'), True)
+    npt.assert_equal(analyze.flags('nicm_test/notafile.nii'), True)
     analyze.run(infile)
 
     transform = nicm.CMTransform(infile)

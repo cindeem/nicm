@@ -65,6 +65,7 @@ class CenterMass():
         com.inputs.op_string = self._op
         output = com.run()
         if output.runtime.returncode != 0:
+            print output.runtime.stderr
             return (('na', 'na', 'na'), 'na', 'FAILED with errorcode ' + output.runtime.returncode)
         self.cm = output.outputs.out_stat
         return_val = (tuple(self.cm), 
@@ -206,7 +207,7 @@ class CMTransform:
 
 class CMAnalyze:
    
-    def __init__(self, outputfile, mode, use_mm = True, threshold = 20,\
+    def __init__(self, outputfile, mode='w', use_mm = True, threshold = 20,\
                  overwrite = True):
         """
         Checks a .nii file for center of mass, and writes output to
@@ -242,7 +243,7 @@ class CMAnalyze:
         if self.donotrun:
             return True
         if not os.path.exists(file):
-            print filename + ' does not exist!'
+            print file + ' does not exist!'
             self.flag('path', file)
             return True
         if not re.search('B[0-9]{2}-[0-9]{3}', file):
@@ -306,6 +307,8 @@ def main(input, outputfile, writemode, fix, threshold,
     if fix:
         t = CMTransform(input)
         t.fix()
+    print os.path.abspath(outputfile)
+    return os.path.abspath(outputfile)
 
 if __name__ == "__main__":
 
@@ -324,11 +327,13 @@ if __name__ == "__main__":
     parser.add_argument('-t', default = 20,
                         help = 'specify a threshold for flagging a'\
                         ' file as off center')
-
-    args = parser.parse_args()
-
-    if args.C:
-        use_mm = False
+    if len(sys.argv) == 1:
+        parser.print_help()
     else:
-        use_mm = True
-    main(args.input, args.o, args.m, args.f, args.t, not args.no_overwrite, use_mm)
+        args = parser.parse_args()
+
+        if args.C:
+            use_mm = False
+        else:
+            use_mm = True
+        main(args.input, args.o, args.m, args.f, args.t, not args.no_overwrite, use_mm)
