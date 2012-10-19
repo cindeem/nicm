@@ -48,7 +48,14 @@ class CenterMass():
 
     def _calc_dist(self, vector):
         """ calculates distance of vector from (0,0,0)
-        returns dist"""
+        returns dist
+
+        >>> from nicm import CenterMass
+        >>> cm = CenterMass('somefile.nii')
+        >>> cm._calc_dist([0,1,0])
+        (1.0, '')
+
+        """
         warning = '' # default warning is empty
         dist = sqrt(float(sum([x**2 for x in vector])))
         if dist > self.thresh:
