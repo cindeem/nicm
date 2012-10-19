@@ -48,4 +48,31 @@ class TestCenterMass(TestCase):
         
 
 class TestCSVIO(TestCase):
+    outfile = join(data_path, 'test.csv')
+    line = ['kitty', 'hawk', 'princess', 'butterfly']
+
+    def test_class(self):
+        assert_raises(TypeError, CSVIO)
+
+    def test_interface(self):
+        writer = nicm.CSVIO(outfile, 'a')
+        assert_equal(writer.initialized, True)
+        assert_equal(writer.mode, 'a')
+        writer = nicm.CSVIO(outfile)
+        assert_equal(writer.mode = 'w')
+
+    def test_functionality(self):
+        writer = nicm.CSVIO(outfile)
+        writer.writeline(line)
+        writer.close()
+        writer = nicm.CSVIO(outfile, 'a')
+        writer.writeline(line)
+        writer.close()
+        reader = nicm.CSVIO(outfile, 'r')  
+        npt.assert_equal(reader.readline(), line)
+        
+class TestCMAnalyze(TestCase):
+    pass
+
+class TestCMTransform(TestCase):
     pass
