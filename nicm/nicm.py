@@ -245,16 +245,15 @@ class CMAnalyze:
         self.threshold = threshold
         self.use_mm = use_mm
         self.overwrite = overwrite
-        self.file = outputfile
         if os.path.exists(outputfile) and not self.overwrite:
             print 'Need permission to overwrite: ' + outputfile +\
                   ', please run without --no-overwrite option'
             self.donotrun = True
             return
-        self.writer = CSVIO(self.file, mode) 
+        self.writer = CSVIO(outputfile, mode) 
 
     def close(self):
-        self.file.close()
+        self.writer.close()
 
     def flags(self, file):
         if self.donotrun:

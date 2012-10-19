@@ -55,21 +55,21 @@ class TestCSVIO(TestCase):
         assert_raises(TypeError, CSVIO)
 
     def test_interface(self):
-        writer = CSVIO(outfile, 'a')
+        writer = CSVIO(self.outfile, 'a')
         assert_equal(writer.initialized, True)
         assert_equal(writer.mode, 'a')
-        writer = CSVIO(outfile)
-        assert_equal(writer.mode = 'w')
+        writer = CSVIO(self.outfile)
+        assert_equal(writer.mode, 'w')
 
     def test_functionality(self):
-        writer = CSVIO(outfile)
-        writer.writeline(line)
+        writer = CSVIO(self.outfile)
+        writer.writeline(self.line)
         writer.close()
-        writer = CSVIO(outfile, 'a')
-        writer.writeline(line)
+        writer = CSVIO(self.outfile, 'a')
+        writer.writeline(self.line)
         writer.close()
-        reader = CSVIO(outfile, 'r')  
-        assert_equal(reader.readline(), line)
+        reader = CSVIO(self.outfile, 'r')  
+        assert_equal(reader.readline(), self.line)
         
 class TestCMAnalyze(TestCase):
     outfile = join(data_path, 'data.csv')
@@ -80,23 +80,23 @@ class TestCMAnalyze(TestCase):
         assert_raises(TypeError, CMAnalyze)
 
     def test_interface(self):
-        analyze = CMAnalyze(outfile)
+        analyze = CMAnalyze(self.outfile)
         assert_equal(analyze.use_mm, True)
         assert_equal(analyze.threshold, 20)
-        npt.assert_equal(analyze.overwrite, True)
+        assert_equal(analyze.overwrite, True)
 
     def test_errorflags(self):
-        analyze = CMAnalyze(outfile)
+        analyze = CMAnalyze(self.outfile)
         assert_equal(analyze.flags('nicm_test/notaniftifile.txt'), True)
         assert_equal(analyze.flags('nicm_test/notafile.nii'), True)
         analyze.close()
 
     def test_run(self):
-        analyze = CMAnalyze(outfile) 
-        analyze.run(infile)
+        analyze = CMAnalyze(self.outfile) 
+        analyze.run(self.infile)
         analyze.close()
-        reader = CSVIO(outfile, 'r')
-        assert_equal(reader.readline(), line) 
+        reader = CSVIO(self.outfile, 'r')
+        assert_equal(reader.readline(), self.line) 
 
 class TestCMTransform(TestCase):
     infile = join(join(data_path, 'B00-100'), 'test.nii')
@@ -105,7 +105,7 @@ class TestCMTransform(TestCase):
         assert_raises(TypeError, CMTransform)
 
     def test_dtransform(self):
-        transform = CMTransform(infile)
+        transform = CMTransform(self.infile)
         dtransform = np.array([[1., 0., 0., -10.],
                                [0., 1., 0., -10.],
                                [0., 0., 2., -5.,],
@@ -113,15 +113,16 @@ class TestCMTransform(TestCase):
         assert_equal(transform.dtransform(), dtransform)
 
     def test_cmtransform(self):
-        transform = CMTransform(infile)
+        transform = CMTransform(self.infile)
         cmtransform = np.array([[1., 0., 0., -10.5],
                                 [0., 1., 0., -4.],
                                 [0., 0., 2., -13.,],
                                 [0., 0., 0., 1.,]])
-        npt.assert_equal(transform.cmtransform(), cmtransform)
+        assert_equal(transform.cmtransform(), cmtransform)
 
 
     def test_fix(self):
+        transform = CMTransform(self.infile)
         test_centered = transform.fix()
         center_mass = CenterMass(test_centered).run()
         npt.assert_almost_equal(center_mass[1], 0.0, decimal=4)

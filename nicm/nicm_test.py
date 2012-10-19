@@ -10,19 +10,19 @@ if __name__ == '__main__':
 
         get image center of mass
 
-        infile = 'something'
-        center_mass = get_center_ofmass(infile)
-        center_of_mass = CenterMass(infile).run()
+        self.infile = 'something'
+        center_mass = get_center_ofmass(self.infile)
+        center_of_mass = CenterMass(self.infile).run()
     """
 
     # test center of mass
-    infile = 'nicm_test/B00-100/test.nii'
+    self.infile = 'nicm_test/B00-100/test.nii'
     npt.assert_raises(TypeError, nicm.CenterMass)
-    center_of_mass = nicm.CenterMass(infile)
-    npt.assert_equal(center_of_mass.filename, infile)
+    center_of_mass = nicm.CenterMass(self.infile)
+    npt.assert_equal(center_of_mass.filename, self.infile)
     npt.assert_equal(center_of_mass.thresh, 20)
     npt.assert_equal(center_of_mass._op , '-c')
-    center_of_mass = nicm.CenterMass(infile).run()
+    center_of_mass = nicm.CenterMass(self.infile).run()
     npt.assert_almost_equal(center_of_mass[1], 17.1828, decimal=4)
     npt.assert_almost_equal(center_of_mass[0], (10.5, 4., 13.), decimal=4)
 
@@ -44,9 +44,9 @@ if __name__ == '__main__':
 
     npt.assert_equal(analyze.flags('nicm_test/notaniftifile.txt'), True)
     npt.assert_equal(analyze.flags('nicm_test/notafile.nii'), True)
-    analyze.run(infile)
+    analyze.run(self.infile)
 
-    transform = nicm.CMTransform(infile)
+    transform = nicm.CMTransform(self.infile)
     dtransform = np.array([[1., 0., 0., -10.],
                           [0., 1., 0., -10.],
                           [0., 0., 2., -5.,],
