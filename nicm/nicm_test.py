@@ -33,8 +33,9 @@ if __name__ == '__main__':
     writer = nicm.CSVIO(outfile, 'w')
     writer.writeline(line)
     writer.writeline(line)
+    writer.close()
     reader = nicm.CSVIO(outfile, 'r')
-    #npt.assert_equal(reader.readline(), line)
+    npt.assert_equal(reader.readline(), line)
      
     analyze = nicm.CMAnalyze('nicm_test/data.csv') 
     npt.assert_equal(analyze.use_mm, True)

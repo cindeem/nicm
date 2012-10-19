@@ -124,6 +124,9 @@ class CSVIO:
         self.writer.writerow(['path','id', 'x', 'y', 'z', 'distance', 'warning flags'])
         self.initialized = True
 
+    def close(self):
+        self.file.close()
+
     def writeline(self, output):
         if not self.initialized:
             self._setup()
@@ -132,7 +135,10 @@ class CSVIO:
     def readline(self):
         if not self.initialized:
             self._setup() ##!! skip first (header) line 
-        return self.reader.next()
+        try:
+            return self.reader.next()
+        except:
+            return ''
 
     def close(self):
         """Closes the file"""
@@ -239,12 +245,16 @@ class CMAnalyze:
         self.threshold = threshold
         self.use_mm = use_mm
         self.overwrite = overwrite
+        self.file = outputfile
         if os.path.exists(outputfile) and not self.overwrite:
             print 'Need permission to overwrite: ' + outputfile +\
                   ', please run without --no-overwrite option'
             self.donotrun = True
             return
-        self.writer = CSVIO(outputfile, mode) 
+        self.writer = CSVIO(self.file, mode) 
+
+    def close(self):
+        self.file.close()
 
     def flags(self, file):
         if self.donotrun:

@@ -69,10 +69,49 @@ class TestCSVIO(TestCase):
         writer.writeline(line)
         writer.close()
         reader = nicm.CSVIO(outfile, 'r')  
-        npt.assert_equal(reader.readline(), line)
+        assert_equal(reader.readline(), line)
         
 class TestCMAnalyze(TestCase):
-    pass
+    outfile = join(data_path, 'data.csv')
+    infile = join(join(data_path, 'B00-100'), 'test.nii')
+    line = [infile, 'B00-100', '10.5', '4.0', '13.0', '17.18284027743958', '']
+
+    def test_class(self):
+        assert_raises(TypeError, CMAnalyze)
+
+    def test_interface(self):
+        analyze = nicm.CMAnalyze(outfile)
+        assert_equal(analyze.use_mm, True)
+        assert_equal(analyze.threshold, 20)
+        npt.assert_equal(analyze.overwrite, True)
+
+    def test_errorflags(self):
+        analyze = nicm.CMAnalyze(outfile)
+        assert_equal(analyze.flags('nicm_test/notaniftifile.txt'), True)
+        assert_equal(analyze.flags('nicm_test/notafile.nii'), True)
+        analyze.close()
+
+    def test_run(self):
+        analyze = nicm.CMAnalyze(outfile) 
+        analyze.run(infile)
+        analyze.close()
+        reader = nicm.CSVIO(outfile, 'r')
+        assert_equal(reader.readline(), line) 
 
 class TestCMTransform(TestCase):
-    pass
+    infile = join(join(data_path, 'B00-100'), 'test.nii')
+
+    def test_class(self):
+        assert_raises(TypeError, CMTransform)
+
+    def test_dtransform(self):
+        transform = nicm.CMTransform(infile)
+        dtransform = np.array([[1., 0., 0., -10.],
+                          [0., 1., 0., -10.],
+                          [0., 0., 2., -5.,],
+                          [0., 0., 0., 1.,]])
+        assert_equal(transform.dtransform(), dtransform)
+
+    def test_cmtransform(self):
+        pass
+
