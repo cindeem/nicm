@@ -55,20 +55,20 @@ class TestCSVIO(TestCase):
         assert_raises(TypeError, CSVIO)
 
     def test_interface(self):
-        writer = nicm.CSVIO(outfile, 'a')
+        writer = CSVIO(outfile, 'a')
         assert_equal(writer.initialized, True)
         assert_equal(writer.mode, 'a')
-        writer = nicm.CSVIO(outfile)
+        writer = CSVIO(outfile)
         assert_equal(writer.mode = 'w')
 
     def test_functionality(self):
-        writer = nicm.CSVIO(outfile)
+        writer = CSVIO(outfile)
         writer.writeline(line)
         writer.close()
-        writer = nicm.CSVIO(outfile, 'a')
+        writer = CSVIO(outfile, 'a')
         writer.writeline(line)
         writer.close()
-        reader = nicm.CSVIO(outfile, 'r')  
+        reader = CSVIO(outfile, 'r')  
         assert_equal(reader.readline(), line)
         
 class TestCMAnalyze(TestCase):
@@ -80,22 +80,22 @@ class TestCMAnalyze(TestCase):
         assert_raises(TypeError, CMAnalyze)
 
     def test_interface(self):
-        analyze = nicm.CMAnalyze(outfile)
+        analyze = CMAnalyze(outfile)
         assert_equal(analyze.use_mm, True)
         assert_equal(analyze.threshold, 20)
         npt.assert_equal(analyze.overwrite, True)
 
     def test_errorflags(self):
-        analyze = nicm.CMAnalyze(outfile)
+        analyze = CMAnalyze(outfile)
         assert_equal(analyze.flags('nicm_test/notaniftifile.txt'), True)
         assert_equal(analyze.flags('nicm_test/notafile.nii'), True)
         analyze.close()
 
     def test_run(self):
-        analyze = nicm.CMAnalyze(outfile) 
+        analyze = CMAnalyze(outfile) 
         analyze.run(infile)
         analyze.close()
-        reader = nicm.CSVIO(outfile, 'r')
+        reader = CSVIO(outfile, 'r')
         assert_equal(reader.readline(), line) 
 
 class TestCMTransform(TestCase):
@@ -105,13 +105,25 @@ class TestCMTransform(TestCase):
         assert_raises(TypeError, CMTransform)
 
     def test_dtransform(self):
-        transform = nicm.CMTransform(infile)
+        transform = CMTransform(infile)
         dtransform = np.array([[1., 0., 0., -10.],
-                          [0., 1., 0., -10.],
-                          [0., 0., 2., -5.,],
-                          [0., 0., 0., 1.,]])
+                               [0., 1., 0., -10.],
+                               [0., 0., 2., -5.,],
+                               [0., 0., 0., 1.,]])
         assert_equal(transform.dtransform(), dtransform)
 
     def test_cmtransform(self):
-        pass
+        transform = CMTransform(infile)
+        cmtransform = np.array([[1., 0., 0., -10.5],
+                                [0., 1., 0., -4.],
+                                [0., 0., 2., -13.,],
+                                [0., 0., 0., 1.,]])
+        npt.assert_equal(transform.cmtransform(), cmtransform)
+
+
+    def test_fix(self):
+        test_centered = transform.fix()
+        center_mass = CenterMass(test_centered).run()
+        npt.assert_almost_equal(center_mass[1], 0.0, decimal=4)
+        npt.assert_almost_equal(center_mass[0], (0., 0., 0.), decimal=4)
 
