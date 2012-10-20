@@ -125,6 +125,6 @@ class TestCMTransform(TestCase):
         transform = CMTransform(self.infile)
         test_centered = transform.fix()
         center_mass = CenterMass(test_centered).run()
-        npt.assert_almost_equal(center_mass[1], 0.0, decimal=4)
-        npt.assert_almost_equal(center_mass[0], (0., 0., 0.), decimal=4)
+        assert_almost_equal(center_mass[1], 0.0, decimal=4)
+        assert_almost_equal(center_mass[0], (0., 0., 0.), decimal=4)
 
