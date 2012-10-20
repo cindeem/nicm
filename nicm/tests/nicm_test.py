@@ -104,11 +104,11 @@ class TestCMAnalyze(TestCase):
 class TestCMTransform(TestCase):
     infile = join(join(data_path, 'B00-100'), 'test.nii')
 
-    @skipUnless(fileExists(), "FILE MISSING") 
+    @skipUnless(file_exists(infile), "FILE MISSING") 
     def test_class(self):
         assert_raises(TypeError, CMTransform)
 
-    @skipUnless(fileExists(), "FILE MISSING") 
+    @skipUnless(file_exists(infile), "FILE MISSING") 
     def test_dtransform(self):
         transform = CMTransform(self.infile)
         dtransform = np.array([[1., 0., 0., -10.],
@@ -117,7 +117,7 @@ class TestCMTransform(TestCase):
                                [0., 0., 0., 1.,]])
         assert_equal(transform.dtransform(), dtransform)
 
-    @skipUnless(fileExists(), "FILE MISSING") 
+    @skipUnless(file_exists(infile), "FILE MISSING") 
     def test_cmtransform(self):
         transform = CMTransform(self.infile)
         cmtransform = np.array([[1., 0., 0., -10.5],
@@ -127,7 +127,7 @@ class TestCMTransform(TestCase):
         assert_equal(transform.cmtransform(), cmtransform)
 
 
-    @skipUnless(fileExists(), "FILE MISSING") 
+    @skipUnless(file_exists(infile), "FILE MISSING") 
     def test_fix(self):
         transform = CMTransform(self.infile)
         test_centered = transform.fix()
