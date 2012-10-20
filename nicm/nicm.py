@@ -159,9 +159,6 @@ class CMTransform:
 
         Seems to work with relative filepaths.
         Works with .nii.gz and .nii files
-        
-        >> t = CMTransform('/home/jagust/UCSF/AD-v1/B05-206/fs_ss_anatomy/rad_nu_mri.nii')
-        >> t.run('/home/jagust/output.nii')
         """
         self.filename = os.path.abspath(filename)
         self.dir, self.file = os.path.split(filename)
@@ -332,8 +329,6 @@ if __name__ == "__main__":
     parser.add_argument('input')
     parser.add_argument('-o')
     parser.add_argument('-m', choices = ['w', 'a'], default = 'w') #specify a write mode
-    ##!! look at parser.add_argument(...choices=['r','w']
-    ##!! http://docs.python.org/dev/library/argparse.html#choices
     statsoption = parser.add_mutually_exclusive_group()
     statsoption.add_argument('-c', action = 'store_true')
     statsoption.add_argument('-C', action = 'store_true')
@@ -343,7 +338,7 @@ if __name__ == "__main__":
     parser.add_argument('-t', default = 20,
                         help = 'specify a threshold for flagging a'\
                         ' file as off center')
-    if len(sys.argv) == 1:
+    if not input:
         parser.print_help()
     else:
         args = parser.parse_args()
