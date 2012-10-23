@@ -37,9 +37,10 @@ class TestCenterMass(TestCase):
         assert_raises(TypeError, CenterMass)
 
     def test_interface(self):
-        center_of_mass = CenterMass(self.testnii)
+        thresh = 15
+        center_of_mass = CenterMass(self.testnii, thresh = thresh)
         assert_equal(center_of_mass.filename, self.testnii)
-        assert_equal(center_of_mass.thresh, 20)
+        assert_equal(center_of_mass.thresh, thresh)
         assert_equal(center_of_mass._op, '-c')
 
     @skipIf(fsl_missing(), 'FSL NOT INSTALLED')
