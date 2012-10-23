@@ -40,7 +40,7 @@ class CenterMass():
         """
 
         self.filename = filename
-        self.thresh = 20
+        self.thresh = thresh
         if use_mm:
             self._op = '-c'
         else:
@@ -123,9 +123,6 @@ class CSVIO:
             return
         self.writer.writerow(['path','id', 'x', 'y', 'z', 'distance', 'warning flags'])
         self.initialized = True
-
-    def close(self):
-        self.file.close()
 
     def writeline(self, output):
         if not self.initialized:
@@ -296,14 +293,13 @@ class CMAnalyze:
         self.writer.writeline(newline)
         return newline
 
-    def runlist(self, masterfile):
+    def run_list(self, filelst):
         """
         Reads a file containing a list of paths to .nii files
         and runs run() on each
         """
-        files = open(masterfile).readlines()
-        for file in files:
-            self.run(file.rstrip('\n'))
+        for infile in lst:
+            self.run(infile)
 
 
 def main(input, outputfile, writemode, fix, threshold,
