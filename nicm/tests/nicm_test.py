@@ -6,6 +6,7 @@ import os
 from os.path import abspath, join, dirname, exists
 
 import numpy as np
+import nibabel as ni
 
 from unittest import TestCase, skipIf, skipUnless
 
@@ -104,6 +105,7 @@ class TestCMAnalyze(TestCase):
 
 class TestCMTransform(TestCase):
     infile = join(join(data_path, 'B00-100'), 'test.nii')
+    infile2 = join(join(data_path, 'B00-100'), 'test2.nii')
 
     @skipUnless(file_exists(infile), "FILE MISSING") 
     def test_class(self):
@@ -127,6 +129,15 @@ class TestCMTransform(TestCase):
                                 [0., 0., 0., 1.,]])
         assert_equal(transform.cmtransform(), cmtransform)
 
+    @skipUnless(file_exists(infile2), "FILE MISSING")
+    def test_affine_sign(self):
+        transform = CMTransform(self.infile2)
+        img = ni.load(self.infile2)
+        affine = img.get_affine()
+        cmtransform = transform.cmtransform()
+        assert_equal(affine[0][0], cmtransform[0][0])
+        assert_equal(affine[1][1], cmtransform[1][1])
+        assert_equal(affine[2][2], cmtransform[2][2])
 
     @skipUnless(file_exists(infile), "FILE MISSING") 
     def test_fix(self):
