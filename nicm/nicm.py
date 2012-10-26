@@ -9,7 +9,6 @@ import nipype.interfaces.fsl as fsl
 import argparse
 import tempfile
 
-
 class CenterMass():
 
     def __init__(self, filename, use_mm = True, thresh = 20):
@@ -178,9 +177,9 @@ class CMTransform:
         new_affine = self.dtransform()
         tempdir = tempfile.mkdtemp()
         newimg = ni.Nifti1Image(self.img.get_data(), new_affine)
-        tempfile = os.path.join(os.path.abspath(tempdir), 'tmp.nii.gz')
-        newimg.to_filename(tempfile)
-        cmfinder = CenterMass(tempfile)
+        tmpfile = os.path.join(os.path.abspath(tempdir), 'tmp.nii.gz')
+        newimg.to_filename(tmpfile)
+        cmfinder = CenterMass(tmpfile)
         output = cmfinder.run()
         cm = output[0]
         for k, v in enumerate(cm):
