@@ -1,13 +1,11 @@
 # Requires nipype, numpy, nibabel, and fsl
 
 from math import sqrt
-import sys
 import csv
 import os
 import re
 import nibabel as ni
 import nipype.interfaces.fsl as fsl
-import numpy as np
 import argparse
 import tempfile
 
