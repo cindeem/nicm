@@ -171,9 +171,8 @@ class CMTransform:
         zooms = self.img.get_header().get_zooms()
         shape = self.img.get_shape()
         self.old_affine = self.img.get_affine()
-        new_affine = np.identity(4)
-        for k, zoom in enumerate(zooms):
-            new_affine[k, k] = zoom
+        new_affine = self.img.get_affine()
+        for k in range(3):
             new_affine[k, 3] = -1 * shape[k]/2
         return new_affine
 
