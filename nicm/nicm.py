@@ -297,7 +297,7 @@ class CMAnalyze:
         Reads a file containing a list of paths to .nii files
         and runs run() on each
         """
-        for infile in lst:
+        for infile in filelst:
             self.run(infile)
 
 
