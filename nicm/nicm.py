@@ -168,9 +168,7 @@ class CMTransform:
     def dtransform(self):
         """returns affine transform that maps the center
         of the matrix (i/2, j/2, k/2) to (0, 0, 0)""" 
-        zooms = self.img.get_header().get_zooms()
         shape = self.img.get_shape()
-        self.old_affine = self.img.get_affine()
         new_affine = self.img.get_affine()
         for k in range(3):
             new_affine[k, 3] = -1 * shape[k]/2
@@ -181,11 +179,10 @@ class CMTransform:
         of mass of the brain to (0, 0, 0)"""
         new_affine = self.dtransform()
         tempdir = tempfile.mkdtemp()
-        newfile = os.path.join(tempdir, 'tmp.nii.gz')
         newimg = ni.Nifti1Image(self.img.get_data(), new_affine)
-        temppath = os.path.join(os.path.abspath(tempdir), 'tmp.nii.gz')
-        newimg.to_filename(temppath)
-        cmfinder = CenterMass(temppath)
+        tempfile = os.path.join(os.path.abspath(tempdir), 'tmp.nii.gz')
+        newimg.to_filename(tempfile)
+        cmfinder = CenterMass(tempfile)
         output = cmfinder.run()
         cm = output[0]
         for k, v in enumerate(cm):
