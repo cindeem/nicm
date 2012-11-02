@@ -134,10 +134,13 @@ class TestCMTransform(TestCase):
         transform = CMTransform(self.infile2)
         img = ni.load(self.infile2)
         affine = img.get_affine()
-        cmtransform = transform.cmtransform()
-        assert_equal(affine[0][0], cmtransform[0][0])
-        assert_equal(affine[1][1], cmtransform[1][1])
-        assert_equal(affine[2][2], cmtransform[2][2])
+        dtransform = transform.dtransform()
+        assert_equal(affine[0][0], dtransform[0][0])
+        assert_equal(affine[1][1], dtransform[1][1])
+        assert_equal(affine[2][2], dtransform[2][2])
+        assert_equal(dtransform[0][3], 10.0)
+        assert_equal(dtransform[1][3], 10.0)
+        assert_equal(dtransform[2][3], -5.0)
 
     @skipUnless(file_exists(infile), "FILE MISSING") 
     def test_fix(self):

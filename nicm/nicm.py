@@ -168,7 +168,7 @@ class CMTransform:
         shape = self.img.get_shape()
         new_affine = self.img.get_affine()
         for k in range(3):
-            new_affine[k, 3] = -1 * copysign(shape[k]/2, new_affine[k, 0])
+            new_affine[k, 3] = -1 * copysign(shape[k]/2, new_affine[k, k])
         return new_affine
 
     def cmtransform(self):
