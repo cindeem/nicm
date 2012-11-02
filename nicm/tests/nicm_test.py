@@ -29,7 +29,7 @@ def fsl_missing():
         return True
 
 def file_exists(filename):
-   return exists(filename) 
+    return exists(filename) 
 
 class TestCenterMass(TestCase):
     testnii = join(data_path, 'B00-100', 'test.nii')
