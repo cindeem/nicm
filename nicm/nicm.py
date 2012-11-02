@@ -1,13 +1,13 @@
 # Requires nipype, numpy, nibabel, and fsl
 
-from math import sqrt
+from math import sqrt, copysign
 import csv
 import os
 import re
 import nibabel as ni
 import nipype.interfaces.fsl as fsl
 import argparse
-import tempfile
+from tempfile import mkdtemp
 
 class CenterMass():
 
@@ -168,14 +168,14 @@ class CMTransform:
         shape = self.img.get_shape()
         new_affine = self.img.get_affine()
         for k in range(3):
-            new_affine[k, 3] = -1 * shape[k]/2
+            new_affine[k, 3] = -1 * copysign(shape[k]/2, new_affine[k, 0])
         return new_affine
 
     def cmtransform(self):
         """returns affine transform that maps the center
         of mass of the brain to (0, 0, 0)"""
         new_affine = self.dtransform()
-        tempdir = tempfile.mkdtemp()
+        tempdir = mkdtemp()
         newimg = ni.Nifti1Image(self.img.get_data(), new_affine)
         tmpfile = os.path.join(os.path.abspath(tempdir), 'tmp.nii.gz')
         newimg.to_filename(tmpfile)
@@ -242,30 +242,30 @@ class CMAnalyze:
     def close(self):
         self.writer.close()
 
-    def flags(self, file):
+    def flags(self, infile):
         if self.donotrun:
             return True
-        if not os.path.exists(file):
-            print file + ' does not exist!'
-            self.flag('path', file)
+        if not os.path.exists(infile):
+            print infile + ' does not exist!'
+            self.flag('path', infile)
             return True
-        if not re.search('B[0-9]{2}-[0-9]{3}', file):
-            print file + ' not in valid directory'
-            self.flag('dir', file)
+        if not re.search('B[0-9]{2}-[0-9]{3}', infile):
+            print infile + ' not in valid directory'
+            self.flag('dir', infile)
             return True
-        dir, filename = os.path.split(file)
-        if '.nii' not in filename:
-            print file + ' is not a valid nifti file'
-            self.flag('filename', file)
+        dir, infilename = os.path.split(infile)
+        if '.nii' not in infilename:
+            print infile + ' is not a valid nifti infile'
+            self.flag('filename', infile)
             return True
 
-    def flag(self, arg, file):
-        d = {'path': [file, 'na', 'na', 'na', 'na', 'na',
+    def flag(self, arg, infile):
+        d = {'path': [infile, 'na', 'na', 'na', 'na', 'na',
                       '!path does not exist'],
-             'dir': [file, 'na', 'na', 'na', 'na', 'na',
-                     '!file not in a valid directory'],
-             'file': [file, 'na', 'na', 'na', 'na', 'na',
-                      '!invalid filetype']}
+             'dir': [infile, 'na', 'na', 'na', 'na', 'na',
+                     '!infile not in a valid directory'],
+             'infile': [infile, 'na', 'na', 'na', 'na', 'na',
+                      '!invalid infiletype']}
         self.writer.writeline(d[arg])
 
     def run(self, filename):
