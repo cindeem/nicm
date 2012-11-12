@@ -5,6 +5,7 @@ import csv
 import os
 import re
 import nibabel as ni
+from nipype.interfaces.base import CommandLine
 import nipype.interfaces.fsl as fsl
 import argparse
 from tempfile import mkdtemp
@@ -59,24 +60,36 @@ class CenterMass():
             warning = '!off center'
         return dist, warning
 
+
+    def find_center_of_mass(self):
+        """ uses nipype CommandLine to call fslstats and
+        retrieve center of mass
+
+        Returns
+        -------
+        center_of_mass : list of floats
+        """
+        cmd = 'fslstats %s %s'%(self.filename, self._op)
+        output = CommandLine(cmd).run()
+        if output.runtime.returncode == 0:
+            return [float(x) for x in output.runtime.stdout.split()]
+        else:
+            print output.runtime.stderr
+            return None
+        
+        
     def run(self):
         """ calculates center of mass of input image, and distance
         returns tuple (cm, dist, warning)"""
         ##!! note of other package used
-        cwd = os.getcwd()
-        com = fsl.ImageStats()
-        com.inputs.in_file = os.path.abspath(self.filename)
-        com.inputs.op_string = self._op
-        output = com.run()
-        if output.runtime.returncode != 0:
-            print output.runtime.stderr
+        com = self.find_center_of_mass()
+        if com is None:
             return (('na', 'na', 'na'), 'na', 'FAILED with errorcode ' + output.runtime.returncode)
-        self.cm = output.outputs.out_stat
+        self.cm = com
         return_val = (tuple(self.cm), 
                       self._calc_dist(self.cm)[0],
                       self._calc_dist(self.cm)[1])
-        print os.path.abspath(self.filename) + ':\n' + str(return_val) + '\n'
-        os.remove(os.path.join(cwd, 'stat_result.json'))
+        print os.path.abspath(self.filename) + ':\n' + str(return_val) + '\n'        
         return return_val 
 
 
