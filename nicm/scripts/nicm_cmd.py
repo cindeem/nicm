@@ -22,9 +22,11 @@ def main(input, outputfile, writemode, fix, threshold,
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument('input')
-    parser.add_argument('-o')
+    parser = argparse.ArgumentParser(description="""
+    This is the description of this command""",
+                                     epilog = "Examples HERE")
+    parser.add_argument('input', help = '')
+    parser.add_argument('-o', help = '')
     parser.add_argument('-m', choices = ['w', 'a'], default = 'w') #specify a write mode
     statsoption = parser.add_mutually_exclusive_group()
     statsoption.add_argument('-c', action = 'store_true')
@@ -35,7 +37,7 @@ if __name__ == "__main__":
     parser.add_argument('-t', default = 20,
                         help = 'specify a threshold for flagging a'\
                         ' file as off center')
-    if not input:
+    if not sys.argv[1]:
         parser.print_help()
     else:
         args = parser.parse_args()
