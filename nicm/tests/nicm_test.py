@@ -45,6 +45,16 @@ class TestCenterMass(TestCase):
         assert_equal(center_of_mass._op, '-c')
 
     @skipIf(fsl_missing(), 'FSL NOT INSTALLED')
+    def test_find_center_of_mass(self):
+        center_of_mass = CenterMass(self.testnii).find_center_of_mass()
+        assert_almost_equal(center_of_mass, [10.5, 4.0, 13.0])
+        #test voxel center of mass
+        center_of_mass = CenterMass(self.testnii, use_mm = False)\
+                         .find_center_of_mass()
+        assert_almost_equal(center_of_mass, [10.5, 4.0, 6.5])
+        
+
+    @skipIf(fsl_missing(), 'FSL NOT INSTALLED')
     def test_run(self):
         center_of_mass = CenterMass(self.testnii).run()
         assert_almost_equal(center_of_mass[1], 17.1828, decimal=4)

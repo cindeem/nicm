@@ -5,6 +5,7 @@ import csv
 import os
 import re
 import nibabel as ni
+from nipype.interfaces.base import CommandLine
 import nipype.interfaces.fsl as fsl
 import argparse
 from tempfile import mkdtemp
@@ -59,24 +60,36 @@ class CenterMass():
             warning = '!off center'
         return dist, warning
 
+
+    def find_center_of_mass(self):
+        """ uses nipype CommandLine to call fslstats and
+        retrieve center of mass
+
+        Returns
+        -------
+        center_of_mass : list of floats
+        """
+        cmd = 'fslstats %s %s'%(self.filename, self._op)
+        output = CommandLine(cmd).run()
+        if output.runtime.returncode == 0:
+            return [float(x) for x in output.runtime.stdout.split()]
+        else:
+            print output.runtime.stderr
+            return None
+        
+        
     def run(self):
         """ calculates center of mass of input image, and distance
         returns tuple (cm, dist, warning)"""
         ##!! note of other package used
-        cwd = os.getcwd()
-        com = fsl.ImageStats()
-        com.inputs.in_file = os.path.abspath(self.filename)
-        com.inputs.op_string = self._op
-        output = com.run()
-        if output.runtime.returncode != 0:
-            print output.runtime.stderr
+        com = self.find_center_of_mass()
+        if com is None:
             return (('na', 'na', 'na'), 'na', 'FAILED with errorcode ' + output.runtime.returncode)
-        self.cm = output.outputs.out_stat
+        self.cm = com
         return_val = (tuple(self.cm), 
                       self._calc_dist(self.cm)[0],
                       self._calc_dist(self.cm)[1])
-        print os.path.abspath(self.filename) + ':\n' + str(return_val) + '\n'
-        os.remove(os.path.join(cwd, 'stat_result.json'))
+        print os.path.abspath(self.filename) + ':\n' + str(return_val) + '\n'        
         return return_val 
 
 
@@ -295,45 +308,3 @@ class CMAnalyze:
             self.run(infile)
 
 
-def main(input, outputfile, writemode, fix, threshold,
-         overwrite = True, use_mm = True):
-    """outputs center of mass of a file to a csv file
-
-    Usage:
-        python nicm.py input output
-    """
-    if outputfile == None:
-        outputfile = os.path.join(os.path.split(input)[0], 'data.csv')
-    m = CMAnalyze(outputfile, writemode, use_mm, threshold, overwrite)    
-    m.run(input)
-    if fix:
-        t = CMTransform(input)
-        t.fix()
-    print os.path.abspath(outputfile)
-    return os.path.abspath(outputfile)
-
-if __name__ == "__main__":
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument('input')
-    parser.add_argument('-o')
-    parser.add_argument('-m', choices = ['w', 'a'], default = 'w') #specify a write mode
-    statsoption = parser.add_mutually_exclusive_group()
-    statsoption.add_argument('-c', action = 'store_true')
-    statsoption.add_argument('-C', action = 'store_true')
-
-    parser.add_argument('-f', action = 'store_true', help = 'fix')
-    parser.add_argument('--no-overwrite', action = 'store_true')
-    parser.add_argument('-t', default = 20,
-                        help = 'specify a threshold for flagging a'\
-                        ' file as off center')
-    if not input:
-        parser.print_help()
-    else:
-        args = parser.parse_args()
-
-        if args.C:
-            use_mm = False
-        else:
-            use_mm = True
-        main(args.input, args.o, args.m, args.f, args.t, not args.no_overwrite, use_mm)
