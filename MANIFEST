@@ -3,7 +3,6 @@ README
 setup.py
 nicm/__init__.py
 nicm/nicm.py
-nicm/nifd-lbl.py
 nicm/tests/__init__.py
 nicm/tests/nicm_test.py
 scripts/nicm_cmd.py
