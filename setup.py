@@ -8,5 +8,5 @@ setup(
     packages = ['nicm', 'nicm.tests'],
     scripts = ['scripts/nicm_cmd.py'],
     license = 'LICENSE.txt',
-    install_requires = ['nibabel', 'nipype']
+    install_requires = ['nibabel', 'nipype', 'numpy']
 )
