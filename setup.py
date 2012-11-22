@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name = 'nicm',
-    version = '0.1',
+    version = '0.1.0',
     author = 'Caleb Wang',
     author_email = 'cw@berkeley.edu',
     packages = ['nicm', 'nicm.tests'],
