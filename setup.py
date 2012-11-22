@@ -1,4 +1,4 @@
-from distutils2.core import setup
+from distutils.core import setup
 
 setup(
     name = 'nicm',
