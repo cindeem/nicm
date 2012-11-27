@@ -44,7 +44,7 @@ if __name__ == "__main__":
                             else, appends to existing .csv log
                         quiet:
                             do not write a log""") #specify a write mode
-    statsoption = parser.add_mutually_exclusive_group(help = 'specify mm/voxel space. defaults to mm space.')
+    statsoption = parser.add_mutually_exclusive_group()
     statsoption.add_argument('-c', action = 'store_true', help = 'use mm space')
     statsoption.add_argument('-C', action = 'store_true', help = 'use voxel space')
 
