@@ -160,3 +160,10 @@ class TestCMTransform(TestCase):
         assert_almost_equal(center_mass[1], 0.0, decimal=4)
         assert_almost_equal(center_mass[0], (0., 0., 0.), decimal=4)
 
+    def test_apply_affine(self):
+        transform = CMTransform(self.infile)
+        outfile = apply_affine(self.infile, transform)
+        center_mass = CenterMass(test_centered).run()
+        assert_almost_equal(center_mass[1], 0.0, decimal=4)
+        assert_almost_equal(center_mass[0], (0., 0., 0.), decimal=4)
+        

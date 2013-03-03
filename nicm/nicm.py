@@ -10,6 +10,11 @@ import nipype.interfaces.fsl as fsl
 import argparse
 from tempfile import mkdtemp
 
+def timestamp(filename):
+    name, ext = splitext(filename)
+    return name + '_' + str(datetime.today()).replace(' ', '-') \
+                                             .split('.')[0] + ext
+
 class CenterMass():
 
     def __init__(self, filename, use_mm = True, thresh = 20):
@@ -209,13 +214,25 @@ class CMTransform:
             Destination of new file with a center of mass transform.
         """
         if new_file == '':
-            new_file = os.path.abspath(self.filename.split(self.fileext)[0] +\
-                                       '_centered' + self.fileext)
+            new_file = timestamp(os.path.abspath(self.filename.split(self.fileext)[0] +\
+                                       '_centered' + self.fileext))
         print new_file
         new_affine = self.cmtransform() 
         newimg = ni.Nifti1Image(self.img.get_data(), new_affine)
         newimg.to_filename(new_file)
         return new_file
+
+    def fix_batch(self, file_list):
+        """
+        Calculates center of mass for self.img, applies new affine to all
+        .nii files in file_list
+        Returns list of output files
+        """
+        new_affine = self.cmtransform()
+        outlist = []
+        for infile in file_list:
+            outlist.append(apply_affine(infile, new_affine))
+        return outlist
 
 
 class CMAnalyze:
@@ -307,4 +324,14 @@ class CMAnalyze:
         for infile in filelst:
             self.run(infile)
 
-
+def apply_affine(infile, affine):
+    """
+    Writes auto-named new file with affine applied to infile data
+    Return name of new file
+    """
+    self.img = ni.load(infile)
+    outfile = timestamp(os.path.abspath(self.filename.split(self.fileext)[0] +\
+                               '_centered' + self.fileext))
+    outimg = ni.Nifti1Image(self.img.get_data(), affine)
+    newimg.to_filename(outfile)
+    return outfile
