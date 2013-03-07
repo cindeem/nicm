@@ -1,7 +1,7 @@
 # emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 """ test nicm """
-
+import time
 import os
 from os.path import abspath, join, dirname, exists
 
@@ -13,8 +13,9 @@ from unittest import TestCase, skipIf, skipUnless
 from numpy.testing import (assert_raises, assert_equal,
                            assert_almost_equal)
 
+import nicm
 from ..nicm import (CenterMass, CSVIO,
-                     CMTransform, CMAnalyze)
+                     CMTransform, CMAnalyze, apply_affine)
 
 
 data_path = abspath(join(dirname(__file__), 'data'))
@@ -159,4 +160,27 @@ class TestCMTransform(TestCase):
         center_mass = CenterMass(test_centered).run()
         assert_almost_equal(center_mass[1], 0.0, decimal=4)
         assert_almost_equal(center_mass[0], (0., 0., 0.), decimal=4)
+        if os.path.exists(test_centered):
+            os.remove(test_centered)
+
+    def test_apply_affine(self):
+        transform = CMTransform(self.infile).cmtransform()
+        outfile = apply_affine(self.infile, transform)
+        center_mass = CenterMass(outfile).run()
+        assert_almost_equal(center_mass[1], 0.0, decimal=4)
+        assert_almost_equal(center_mass[0], (0., 0., 0.), decimal=4)
+        if os.path.exists(outfile):
+            os.remove(outfile)
+
+    def test_fix_batch(self):
+        transform = CMTransform(self.infile)
+        inlist = [self.infile]
+        outlist = transform.fix_batch(inlist)
+        for outfile in outlist:
+            center_mass = CenterMass(outfile).run()
+            assert_almost_equal(center_mass[1], 0.0, decimal=4)
+            assert_almost_equal(center_mass[0], (0., 0., 0.), decimal=4)
+            if os.path.exists(outfile):
+                os.remove(outfile)
+
 
