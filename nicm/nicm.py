@@ -338,7 +338,6 @@ def apply_affine(infile, affine):
     img = ni.load(infile)
     outfile = timestamp(os.path.abspath(infile.split(fileext)[0] +\
                                '_centered' + fileext))
-    print outfile
     outimg = ni.Nifti1Image(img.get_data(), affine)
     outimg.to_filename(outfile)
     return outfile

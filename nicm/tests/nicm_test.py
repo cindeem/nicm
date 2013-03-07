@@ -1,7 +1,7 @@
 # emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 """ test nicm """
-
+import time
 import os
 from os.path import abspath, join, dirname, exists
 
@@ -171,4 +171,16 @@ class TestCMTransform(TestCase):
         assert_almost_equal(center_mass[0], (0., 0., 0.), decimal=4)
         if os.path.exists(outfile):
             os.remove(outfile)
-             
+
+    def test_fix_batch(self):
+        transform = CMTransform(self.infile)
+        inlist = [self.infile]
+        outlist = transform.fix_batch(inlist)
+        for outfile in outlist:
+            center_mass = CenterMass(outfile).run()
+            assert_almost_equal(center_mass[1], 0.0, decimal=4)
+            assert_almost_equal(center_mass[0], (0., 0., 0.), decimal=4)
+            if os.path.exists(outfile):
+                os.remove(outfile)
+
+
