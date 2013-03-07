@@ -160,6 +160,8 @@ class TestCMTransform(TestCase):
         center_mass = CenterMass(test_centered).run()
         assert_almost_equal(center_mass[1], 0.0, decimal=4)
         assert_almost_equal(center_mass[0], (0., 0., 0.), decimal=4)
+        if os.path.exists(test_centered):
+            os.remove(test_centered)
 
     def test_apply_affine(self):
         transform = CMTransform(self.infile).cmtransform()
@@ -167,4 +169,6 @@ class TestCMTransform(TestCase):
         center_mass = CenterMass(outfile).run()
         assert_almost_equal(center_mass[1], 0.0, decimal=4)
         assert_almost_equal(center_mass[0], (0., 0., 0.), decimal=4)
-        
+        if os.path.exists(outfile):
+            os.remove(outfile)
+             
