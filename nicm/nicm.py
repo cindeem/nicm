@@ -3,11 +3,13 @@
 from math import sqrt, copysign
 import csv
 import os
+from os.path import splitext
 import re
 import nibabel as ni
 from nipype.interfaces.base import CommandLine
 import nipype.interfaces.fsl as fsl
 import argparse
+from datetime import datetime
 from tempfile import mkdtemp
 
 def timestamp(filename):
@@ -329,9 +331,14 @@ def apply_affine(infile, affine):
     Writes auto-named new file with affine applied to infile data
     Return name of new file
     """
-    self.img = ni.load(infile)
-    outfile = timestamp(os.path.abspath(self.filename.split(self.fileext)[0] +\
-                               '_centered' + self.fileext))
-    outimg = ni.Nifti1Image(self.img.get_data(), affine)
-    newimg.to_filename(outfile)
+    if 'nii.gz' in infile:
+        fileext = '.nii.gz'
+    else:
+        fileext = '.nii'
+    img = ni.load(infile)
+    outfile = timestamp(os.path.abspath(infile.split(fileext)[0] +\
+                               '_centered' + fileext))
+    print outfile
+    outimg = ni.Nifti1Image(img.get_data(), affine)
+    outimg.to_filename(outfile)
     return outfile

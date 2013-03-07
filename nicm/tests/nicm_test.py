@@ -13,8 +13,9 @@ from unittest import TestCase, skipIf, skipUnless
 from numpy.testing import (assert_raises, assert_equal,
                            assert_almost_equal)
 
+import nicm
 from ..nicm import (CenterMass, CSVIO,
-                     CMTransform, CMAnalyze)
+                     CMTransform, CMAnalyze, apply_affine)
 
 
 data_path = abspath(join(dirname(__file__), 'data'))
@@ -161,9 +162,9 @@ class TestCMTransform(TestCase):
         assert_almost_equal(center_mass[0], (0., 0., 0.), decimal=4)
 
     def test_apply_affine(self):
-        transform = CMTransform(self.infile)
+        transform = CMTransform(self.infile).cmtransform()
         outfile = apply_affine(self.infile, transform)
-        center_mass = CenterMass(test_centered).run()
+        center_mass = CenterMass(outfile).run()
         assert_almost_equal(center_mass[1], 0.0, decimal=4)
         assert_almost_equal(center_mass[0], (0., 0., 0.), decimal=4)
         
