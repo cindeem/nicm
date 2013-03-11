@@ -3,19 +3,21 @@
 from math import sqrt, copysign
 import csv
 import os
-from os.path import splitext
+from os.path import (splitext, join)
 import re
 import nibabel as ni
 from nipype.interfaces.base import CommandLine
 import nipype.interfaces.fsl as fsl
+from nipype.utils.filemanip import split_filename
 import argparse
 from datetime import datetime
 from tempfile import mkdtemp
 
 def timestamp(filename):
-    name, ext = splitext(filename)
-    return name + '_' + str(datetime.today()).replace(' ', '-') \
-                                             .split('.')[0] + ext
+    pth, name, ext = split_filename(filename)
+    now = datetime.now().strftime('%Y-%m-%d-%H-%M')
+    return join(pth, '_'.join([name, now]) +  ext)
+
 
 class CenterMass():
 
